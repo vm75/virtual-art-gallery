@@ -102,7 +102,7 @@ Rules:
 - Public pages use responsive derived images rather than downloading originals unnecessarily.
 - 3D museum textures are sized for GPU use and loaded/unloaded according to proximity/visibility.
 
-The image pipeline accepts decodable JPEG, PNG, and GIF uploads up to 20 MiB and 16,000 pixels per dimension by default. It retains the original and writes application-generated immutable paths for thumbnail (480px), medium (1200px), museum (2048px), and large (2400px) JPEG derivatives, preserving aspect ratio. Processing happens in a temporary directory and failed processing removes it; public consumers use derivatives rather than originals.
+The image pipeline accepts decodable JPEG, PNG, and GIF uploads up to 20 MiB and 16,000 pixels per dimension by default. It retains the original and writes application-generated immutable JPEG derivatives, preserving aspect ratio without upscaling: thumbnail up to 480×480, medium up to 1200×1200, museum up to 2048×2048, and large up to 2400×2400. Bilinear resampling improves display quality while bounding portrait and landscape output. Processing happens in a temporary directory and failed processing removes it; public consumers use derivatives rather than originals.
 
 ## Public frontend architecture
 

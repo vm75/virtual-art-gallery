@@ -72,7 +72,7 @@ Authenticated administrators edit museum rules at `/admin/museum`; saving create
 
 Surface and medium values are normalized (trimmed and case-folded) and newly entered values are retained in the database for subsequent selection/filtering.
 
-Artwork uploads accept JPEG, PNG, or GIF up to 20 MiB and are stored under the configured data directory with generated names. The image pipeline retains originals and creates thumbnail, medium, museum, and large JPEG derivatives.
+Artwork uploads accept JPEG, PNG, or GIF up to 20 MiB and are stored under the configured data directory with generated names. The image pipeline retains originals and creates bilinearly resampled JPEG derivatives without upscaling: thumbnail (up to 480×480), medium (up to 1200×1200), museum (up to 2048×2048), and large (up to 2400×2400).
 
 Quality gates:
 
