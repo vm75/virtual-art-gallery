@@ -82,6 +82,8 @@ go vet ./...
 go test ./...
 ```
 
+The `quality` workflow runs these checks, the production build, and browser-module syntax checks on pushes to and pull requests targeting `main`.
+
 Container development uses the portable Compose file:
 
 ```sh
