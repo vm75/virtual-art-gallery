@@ -51,6 +51,7 @@ KISS and YAGNI are mandatory. The `legacy` branch is reference material only.
 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [x] | Security, accessibility, and performance hardening | I-007, I-011, I-012, I-018, I-019 |
 | I-023 | [#23](https://github.com/vm75/virtual-art-gallery/issues/23) | [x] | Backup/restore and operational readiness | I-003, I-005, I-020 |
 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [x] | End-to-end fresh-install acceptance and v1 release | all v1 items |
+| I-025 | — | [x] | Versioned container builds published to Docker Hub and GHCR from tag/manual CI | I-021, I-024 |
 
 ## Dependency guidance
 
@@ -94,6 +95,7 @@ YYYY-MM-DD I-xxx [~|x|!] agent/actor — issue #N — commit/PR — tests run �
 2026-09-07 I-023 x — issue #23 — stop-and-archive backup/restore scripts and operational guidance complete — temporary archive restore smoke preserved database and image files; docs cover health, logs, graceful stop, upgrade, ownership, migration compatibility, and reset boundaries.
 2026-09-07 I-024 x — issue #24 — fresh-install acceptance and v1 release gate complete — clean data-dir setup/login, representative artwork upload/edit/visibility and metadata filtering, canonical detail/media delivery, museum draft preview/publish/API, backup/restore, desktop/mobile browser smoke, `GOCACHE=/tmp/gallery-gocache GOMODCACHE=/tmp/gallery-modcache go test ./...`, `go vet ./...`, `go build`, JS syntax checks, `git diff --check`, and Podman non-root image smoke passed; local image `vm75/virtual-art-gallery:v1-local`; Docker Compose frontends unavailable and no remote release publication performed.
 2026-09-07 I-001 x — issue #1 — project-wide v1 acceptance gate closed after I-024 evidence; all implementation issues I-002 through I-024 are complete and the documented global criteria were reviewed.
+2026-09-07 I-025 x — versioned OCI metadata and tag/manual-only Docker Hub + GHCR publishing workflow complete — local Go tests/vet/build, linker-metadata startup smoke, workflow inspection, and `git diff --check`; the versioned Containerfile build was attempted but blocked by local Docker/Podman runtime permissions; remote registry publication requires configured Docker Hub secrets and a pushed release tag or manual dispatch.
 
 ## Follow-up issues
 

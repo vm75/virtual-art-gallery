@@ -70,7 +70,7 @@ go test ./...
 ```
 
 The bootstrap implementation currently uses `go run ./cmd/gallery`, with `GALLERY_LISTEN_ADDR` defaulting to `:8080`, `GALLERY_DATA_DIR` defaulting to `./data`, and `GALLERY_SECURE_COOKIES` defaulting to false.
-CI also checks `test -z "$(gofmt -l cmd internal web)"`, all browser modules with `node --check`, a production build, and the OCI `Containerfile`.
+CI checks `test -z "$(gofmt -l cmd internal web)"`, all browser modules with `node --check`, and a production build. The release workflow is the only CI path that builds or publishes the OCI `Containerfile`, and it runs only for release tags or manual dispatch.
 
 Frontend checks should be dependency-light. Prefer browser/integration tests only where they protect important interactions; do not build a heavyweight testing stack without need.
 

@@ -18,6 +18,7 @@ import (
 	"github.com/vm75/virtual-art-gallery/internal/images"
 	"github.com/vm75/virtual-art-gallery/internal/museum"
 	"github.com/vm75/virtual-art-gallery/internal/store"
+	"github.com/vm75/virtual-art-gallery/internal/version"
 	webassets "github.com/vm75/virtual-art-gallery/web"
 )
 
@@ -63,7 +64,7 @@ func main() {
 
 	server := &http.Server{Addr: cfg.ListenAddr, Handler: httpx.SecurityHeaders(mux), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
-		logger.Info("server listening", "address", cfg.ListenAddr, "data_dir", cfg.DataDir)
+		logger.Info("server listening", "address", cfg.ListenAddr, "data_dir", cfg.DataDir, "version", version.Version, "revision", version.Revision)
 		if serveErr := server.ListenAndServe(); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
 			logger.Error("server stopped unexpectedly", "error", serveErr)
 			os.Exit(1)

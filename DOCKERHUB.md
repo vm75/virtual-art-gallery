@@ -1,6 +1,6 @@
 # Container Image and Registry Guide
 
-This document defines the intended portable container contract for the rewrite. Until the containerization issues are complete, commands here are a target specification rather than a release claim.
+This document defines the portable container and release contract for the rewrite.
 
 ## Image name
 
@@ -10,7 +10,9 @@ Default examples use:
 vm75/virtual-art-gallery
 ```
 
-Tags should be immutable for releases (`v1.2.3`) with optional moving convenience tags (`1`, `1.2`, `latest`) only after a release policy is established.
+Git releases use `vMAJOR.MINOR.PATCH` tags. Published image tags omit the leading `v`, so `v1.2.3` publishes `1.2.3`; stable releases also publish `latest`. Pre-release versions such as `v1.2.3-rc.1` never move `latest`.
+
+Images are published to both `vm75/virtual-art-gallery` on Docker Hub and `ghcr.io/vm75/virtual-art-gallery`. The GitHub Actions workflow runs only for pushed `v*` tags or an explicit manual dispatch. Manual dispatch requires a semantic version input and uses the selected workflow ref. Docker Hub requires repository secrets named `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`; GHCR uses the workflow-provided `GITHUB_TOKEN`.
 
 ## Platform portability requirements
 
@@ -52,9 +54,9 @@ GALLERY_SECURE_COOKIES # only if automatic/proxy detection is insufficient
 
 The current defaults are `GALLERY_LISTEN_ADDR=:8080`, `GALLERY_DATA_DIR=./data` for local runs (and `/data` in the image), and `GALLERY_SECURE_COOKIES=false`.
 
-The shipped `Containerfile` builds a static Go binary and runs it as UID 10001 in Alpine. `Compose.yml` exposes host `${GALLERY_PORT:-8080}` to container port 8080 and persists `/data` in the named `gallery-data` volume. The image healthcheck uses Alpine's bundled `wget` against `/healthz`.
+The shipped `Containerfile` builds a static Go binary and runs it as UID 10001 in Alpine. Release builds inject version, commit, and build-date metadata into the binary and OCI labels; local builds default to version `dev`. `Compose.yml` exposes host `${GALLERY_PORT:-8080}` to container port 8080 and persists `/data` in the named `gallery-data` volume. The image healthcheck uses Alpine's bundled `wget` against `/healthz`.
 
-Validation on 2026-09-07: `podman build -f Containerfile ...` and a temporary rootless-compatible `podman run` passed health and UID checks. Docker Compose and Podman Compose were not installed in the execution environment.
+Validation on 2026-09-07: the previously released container baseline passed `podman build -f Containerfile ...` and a temporary rootless-compatible `podman run` health/UID smoke. The versioned release build could not be rerun here because Podman could not set its runtime-directory permissions and Docker could not access its daemon. Docker Compose and Podman Compose were not installed in the execution environment.
 
 ## Backup and restore
 
@@ -138,7 +140,18 @@ Before publishing a release image:
 9. Verify health endpoint.
 10. Test Docker Compose and rootless Podman Compose behavior where available.
 11. Confirm README, `ARCHITECTURE.md`, this document, and `Compose.yml` use the same ports, paths, env names, and image tags.
-12. Publish immutable version tag; only then update moving tags if policy permits.
+12. Publish the immutable version tag; the release workflow adds `latest` only for a stable semantic version.
+
+## GitHub release workflow
+
+Create and push a release tag after the quality workflow is green:
+
+```sh
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+Alternatively, select **Actions → publish container → Run workflow**, enter a semantic version, and choose the ref to build. The workflow validates the version, logs in independently to both registries, builds the `Containerfile` once, and pushes the resulting tags to both registries. It does not run for branch pushes or pull requests.
 
 ## Backup contract
 

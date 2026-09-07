@@ -90,6 +90,12 @@ docker compose -f Compose.yml up --build
 
 The container listens on port 8080, stores persistent state under `/data`, runs as a non-root user, and accepts `GALLERY_PORT`, `GALLERY_SECURE_COOKIES`, `GALLERY_LISTEN_ADDR`, and `GALLERY_DATA_DIR` configuration as documented in `DOCKERHUB.md`.
 
+## Release images
+
+Container publication runs only from a pushed `vMAJOR.MINOR.PATCH` (optionally pre-release) tag or from the `publish container` workflow's manual dispatch. A release publishes the same versioned image to Docker Hub as `vm75/virtual-art-gallery:MAJOR.MINOR.PATCH` and to GHCR as `ghcr.io/vm75/virtual-art-gallery:MAJOR.MINOR.PATCH`; stable versions also receive `latest`. Configure the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets before publishing. GHCR authentication uses the workflow's `GITHUB_TOKEN`.
+
+The image and binary receive version, commit, and build-date metadata at build time. The default local/container build version is `dev`.
+
 For operations, stop the service before copying persistent data. Use `scripts/backup.sh` and `scripts/restore.sh` as documented in `DOCKERHUB.md`; the procedure backs up SQLite and all image files together and never recommends copying a live database.
 
 ## Status
