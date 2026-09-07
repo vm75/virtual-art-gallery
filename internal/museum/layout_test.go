@@ -35,7 +35,7 @@ func TestLayoutDeterministicReachableAndSpatial(t *testing.T) {
 	}
 	assertUniqueLocations(t, first)
 	for _, placement := range first.Placements {
-		if placement.ID == "" || placement.RoomID == "" || placement.ArtworkSlug == "" || placement.Aspect <= 0 || placement.Width <= 0 || placement.Height <= 0 || placement.Normal == (Vector3{}) {
+		if placement.ID == "" || placement.RoomID == "" || placement.ArtworkSlug == "" || placement.Aspect <= 0 || placement.Width <= 0 || placement.Height <= 0 || placement.Normal == (Vector3{}) || placement.Transform.Position != placement.Position || placement.Transform.Normal != placement.Normal {
 			t.Fatalf("incomplete placement: %+v", placement)
 		}
 	}
@@ -87,6 +87,40 @@ func TestValidatePlacementsRejectsDuplicatePhysicalLocation(t *testing.T) {
 	plan.Placements[1].Position = plan.Placements[0].Position
 	if err := ValidatePlacements(plan, assignment); err == nil {
 		t.Fatal("duplicate physical placement accepted")
+	}
+}
+
+func TestValidatePlacementsRejectsMissingAndWrongGroup(t *testing.T) {
+	assignment := Assignment{Groups: map[string][]artwork.Artwork{"a": works("a", 1), "b": works("b", 1)}}
+	plan := GenerateLayout(assignment, 1)
+	plan.Placements = plan.Placements[:1]
+	if err := ValidatePlacements(plan, assignment); err == nil {
+		t.Fatal("missing placement accepted")
+	}
+	plan = GenerateLayout(assignment, 1)
+	plan.Placements[0].RoomID = plan.Rooms[1].ID
+	if err := ValidatePlacements(plan, assignment); err == nil {
+		t.Fatal("cross-group placement accepted")
+	}
+}
+
+func TestPlacementTransformsHandleAspectsDeterministically(t *testing.T) {
+	assignment := Assignment{Groups: map[string][]artwork.Artwork{"works": {
+		{Slug: "extreme-landscape", ImageWidth: 10000, ImageHeight: 100},
+		{Slug: "portrait", ImageWidth: 100, ImageHeight: 1000},
+		{Slug: "square", ImageWidth: 1000, ImageHeight: 1000},
+	}}}
+	plan := GenerateLayout(assignment, 99)
+	if err := ValidatePlacements(plan, assignment); err != nil {
+		t.Fatal(err)
+	}
+	for _, placement := range plan.Placements {
+		if placement.Width > 2.8 || placement.Height <= 0 || placement.Transform.Rotation.Y < 0 || placement.Transform.Rotation.Y > 3.141592653589793 {
+			t.Fatalf("invalid aspect transform: %+v", placement)
+		}
+	}
+	if !reflect.DeepEqual(plan, GenerateLayout(assignment, 99)) {
+		t.Fatal("transforms are not deterministic")
 	}
 }
 

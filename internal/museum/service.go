@@ -37,6 +37,17 @@ func (s *Service) Publish(ctx context.Context) error {
 	if err = Validate(set); err != nil {
 		return err
 	}
+	works, err := s.artworks.ListPublic(ctx, "", "", "", "asc")
+	if err != nil {
+		return err
+	}
+	assignment, err := Evaluate(set, works)
+	if err != nil {
+		return err
+	}
+	if err := validateGeneratedPlan(GenerateLayout(assignment, set.Seed), assignment); err != nil {
+		return err
+	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO museum_rule_sets(id,version,state,seed,rules_json) VALUES(2,?,?,?,?) ON CONFLICT(id) DO UPDATE SET version=excluded.version,state=excluded.state,seed=excluded.seed,rules_json=excluded.rules_json`, set.Version, "published", set.Seed, mustJSON(set))
 	return err
 }
@@ -65,10 +76,27 @@ func (s *Service) Scene(ctx context.Context) (struct {
 			Plan    Plan `json:"plan"`
 		}{}, err
 	}
+	plan := GenerateLayout(assignment, published.Seed)
+	if err := validateGeneratedPlan(plan, assignment); err != nil {
+		return struct {
+			Version int  `json:"version"`
+			Plan    Plan `json:"plan"`
+		}{}, err
+	}
 	return struct {
 		Version int  `json:"version"`
 		Plan    Plan `json:"plan"`
-	}{published.Version, GenerateLayout(assignment, published.Seed)}, nil
+	}{published.Version, plan}, nil
+}
+
+func validateGeneratedPlan(plan Plan, assignment Assignment) error {
+	if len(plan.Errors) > 0 {
+		return fmt.Errorf("invalid museum layout: %s", plan.Errors[0])
+	}
+	if err := ValidatePlacements(plan, assignment); err != nil {
+		return fmt.Errorf("invalid museum layout: %w", err)
+	}
+	return nil
 }
 
 // Preview evaluates a draft without publishing it.

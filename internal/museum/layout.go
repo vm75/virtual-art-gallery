@@ -52,6 +52,14 @@ type Doorway struct {
 	Height   float64 `json:"height"`
 }
 
+// Transform is the renderer-ready placement contract. Rotation is expressed as
+// Euler radians and Normal remains available for facing/culling decisions.
+type Transform struct {
+	Position Vector3 `json:"position"`
+	Normal   Vector3 `json:"normal"`
+	Rotation Vector3 `json:"rotation"`
+}
+
 type Connection struct {
 	From        string  `json:"from"`
 	To          string  `json:"to"`
@@ -60,16 +68,17 @@ type Connection struct {
 }
 
 type Placement struct {
-	ID          string  `json:"id"`
-	RoomID      string  `json:"room_id"`
-	ArtworkSlug string  `json:"artwork_slug"`
-	Wall        int     `json:"wall"`
-	Slot        int     `json:"slot"`
-	Position    Vector3 `json:"position"`
-	Normal      Vector3 `json:"normal"`
-	Aspect      float64 `json:"aspect"`
-	Width       float64 `json:"width"`
-	Height      float64 `json:"height"`
+	ID          string    `json:"id"`
+	RoomID      string    `json:"room_id"`
+	ArtworkSlug string    `json:"artwork_slug"`
+	Wall        int       `json:"wall"`
+	Slot        int       `json:"slot"`
+	Position    Vector3   `json:"position"`
+	Normal      Vector3   `json:"normal"`
+	Transform   Transform `json:"transform"`
+	Aspect      float64   `json:"aspect"`
+	Width       float64   `json:"width"`
+	Height      float64   `json:"height"`
 }
 
 func ValidatePlacements(plan Plan, assignment Assignment) error {
@@ -80,14 +89,20 @@ func ValidatePlacements(plan Plan, assignment Assignment) error {
 		}
 		rooms[room.ID] = room
 	}
-	expected := map[string]bool{}
-	for _, works := range assignment.Groups {
+	expected := map[string]string{}
+	for group, works := range assignment.Groups {
 		for _, work := range works {
-			expected[work.Slug] = true
+			if prior, exists := expected[work.Slug]; exists && prior != group {
+				return fmt.Errorf("artwork %s belongs to multiple groups", work.Slug)
+			}
+			expected[work.Slug] = group
 		}
 	}
 	for _, work := range assignment.Unclassified {
-		expected[work.Slug] = true
+		if prior, exists := expected[work.Slug]; exists && prior != "unclassified" {
+			return fmt.Errorf("artwork %s belongs to multiple groups", work.Slug)
+		}
+		expected[work.Slug] = "unclassified"
 	}
 	artworks := map[string]bool{}
 	physicalSlots := map[string]bool{}
@@ -97,8 +112,12 @@ func ValidatePlacements(plan Plan, assignment Assignment) error {
 		if !exists {
 			return fmt.Errorf("placement %s references unknown room", placement.ID)
 		}
-		if !expected[placement.ArtworkSlug] {
+		group, expectedArtwork := expected[placement.ArtworkSlug]
+		if !expectedArtwork {
 			return fmt.Errorf("placement %s references unassigned artwork", placement.ID)
+		}
+		if room.Group != group {
+			return fmt.Errorf("placement %s is outside its exhibition room", placement.ID)
 		}
 		if artworks[placement.ArtworkSlug] {
 			return fmt.Errorf("artwork %s has multiple placements", placement.ArtworkSlug)
@@ -113,6 +132,9 @@ func ValidatePlacements(plan Plan, assignment Assignment) error {
 		positionKey := fmt.Sprintf("%.3f/%.3f/%.3f", placement.Position.X, placement.Position.Y, placement.Position.Z)
 		if positions[positionKey] {
 			return fmt.Errorf("placement %s duplicates world position", placement.ID)
+		}
+		if placement.Transform.Position != placement.Position || placement.Transform.Normal != placement.Normal || placement.Transform.Normal == (Vector3{}) {
+			return fmt.Errorf("placement %s has an invalid renderer transform", placement.ID)
 		}
 		artworks[placement.ArtworkSlug] = true
 		physicalSlots[slotKey] = true
@@ -205,7 +227,8 @@ func GenerateLayout(assignment Assignment, seed int64) Plan {
 				width = 2.8
 				height = width / aspect
 			}
-			plan.Placements = append(plan.Placements, Placement{ID: fmt.Sprintf("%s-placement-%03d", room.ID, placementIndex+1), RoomID: room.ID, ArtworkSlug: work.Slug, Wall: wall, Slot: slot, Position: position, Normal: normal, Aspect: aspect, Width: width, Height: height})
+			transform := Transform{Position: position, Normal: normal, Rotation: Vector3{Y: rotationFor(normal)}}
+			plan.Placements = append(plan.Placements, Placement{ID: fmt.Sprintf("%s-placement-%03d", room.ID, placementIndex+1), RoomID: room.ID, ArtworkSlug: work.Slug, Wall: wall, Slot: slot, Position: position, Normal: normal, Transform: transform, Aspect: aspect, Width: width, Height: height})
 		}
 	}
 	return plan
@@ -226,4 +249,11 @@ func placementPosition(room Room, wall, slot int) (Vector3, Vector3) {
 		return Vector3{X: room.Position.X + localX, Y: roomHeight / 2, Z: room.Position.Z + room.Depth/2}, Vector3{Z: -1}
 	}
 	return Vector3{X: room.Position.X + localX, Y: roomHeight / 2, Z: room.Position.Z - room.Depth/2}, Vector3{Z: 1}
+}
+
+func rotationFor(normal Vector3) float64 {
+	if normal.Z < 0 {
+		return 3.141592653589793
+	}
+	return 0
 }
