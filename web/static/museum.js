@@ -1,7 +1,7 @@
 // Page wiring stays separate from the renderer, camera, and texture modules.
 import { MuseumCamera } from './museum-camera.js';
 import { MuseumRenderer } from './museum-renderer.js';
-import { TextureLoader, museumSource } from './texture-loader.js';
+import { MuseumTextureLifecycle } from './texture-loader.js';
 
 const canvas = document.querySelector('#museum-canvas');
 const fallback = document.querySelector('#museum-fallback');
@@ -45,7 +45,8 @@ async function start() {
   let renderer;
   try { renderer = new MuseumRenderer(canvas); } catch { fallback.hidden = false; return; }
   let camera;
-  const redraw = () => renderer.render(camera);
+  let textures;
+  const redraw = () => { renderer.render(camera); textures?.update(camera); };
   try {
     const sceneResponse = await fetch('/api/museum'); if (!sceneResponse.ok) throw new Error('museum is not published');
     const scene = await sceneResponse.json(), plan = scene.plan;
@@ -53,12 +54,8 @@ async function start() {
     const artworks = await response.json(), bySlug = new Map(artworks.map((item) => [item.slug, item]));
     camera = new MuseumCamera(plan.spawn_position); renderer.setScene(plan); fallback.hidden = true; redraw(); installControls(camera, redraw);
     const showInfo = detailsDialog(); artworkList(plan.placements || [], bySlug, showInfo);
-    const loader = new TextureLoader(6), source = (item) => museumSource(item, navigator.connection?.saveData === true);
-    for (const placement of plan.placements || []) {
-      const item = bySlug.get(placement.artwork_slug), url = item && source(item); if (!url) continue;
-      loader.load(item.slug, url).then((image) => { renderer.setArtworkImage(item.slug, image); redraw(); }).catch(() => redraw());
-    }
-    window.addEventListener('pagehide', () => { loader.clear(); renderer.dispose(); }, { once: true });
+    textures = new MuseumTextureLifecycle({ plan, artworks: bySlug, renderer, redraw }); textures.update(camera);
+    window.addEventListener('pagehide', () => { textures.dispose(); renderer.dispose(); }, { once: true });
   } catch {
     renderer.dispose(); fallback.hidden = false;
   }

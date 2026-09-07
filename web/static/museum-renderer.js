@@ -1,3 +1,5 @@
+import { placementVisible } from './texture-loader.js';
+
 // Rewrite-owned WebGL scene renderer. It consumes only the public layout plan
 // and artwork metadata; it has no knowledge of application routes or rules.
 const vertexSource = `attribute vec3 position; attribute vec3 color; uniform mat4 projection; uniform mat4 view; varying vec3 shaded; void main() { shaded = color; gl_Position = projection * view * vec4(position, 1.0); }`;
@@ -107,6 +109,7 @@ export class MuseumRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image); this.textures.set(slug, texture);
   }
+  removeArtworkImage(slug) { const texture = this.textures.get(slug); if (texture) this.gl.deleteTexture(texture); this.textures.delete(slug); }
   render(camera) {
     const gl = this.gl, width = this.canvas.clientWidth * devicePixelRatio, height = this.canvas.clientHeight * devicePixelRatio;
     if (this.canvas.width !== width || this.canvas.height !== height) { this.canvas.width = width; this.canvas.height = height; }
@@ -119,6 +122,7 @@ export class MuseumRenderer {
     gl.disable(gl.CULL_FACE); gl.useProgram(this.artProgram); gl.uniformMatrix4fv(gl.getUniformLocation(this.artProgram, 'projection'), false, projection); gl.uniformMatrix4fv(gl.getUniformLocation(this.artProgram, 'view'), false, view);
     const ap = gl.getAttribLocation(this.artProgram, 'position'), uv = gl.getAttribLocation(this.artProgram, 'uv'); gl.uniform1i(gl.getUniformLocation(this.artProgram, 'artwork'), 0);
     for (const artwork of this.artworks) {
+      if (!placementVisible(artwork, camera)) continue;
       gl.bindBuffer(gl.ARRAY_BUFFER, this.artBuffer); gl.bufferData(gl.ARRAY_BUFFER, artVertices(artwork), gl.STREAM_DRAW); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 20, 0); gl.enableVertexAttribArray(uv); gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 20, 12);
       const texture = this.textures.get(artwork.artwork_slug); gl.uniform1i(gl.getUniformLocation(this.artProgram, 'textured'), texture ? 1 : 0); gl.uniform3f(gl.getUniformLocation(this.artProgram, 'fallback'), .48, .22, .14);
       if (texture) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texture); } gl.drawArrays(gl.TRIANGLES, 0, 6);
