@@ -2,7 +2,9 @@ package artwork
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"regexp"
 	"strings"
@@ -304,9 +306,12 @@ func ensureTaxonomy(ctx context.Context, tx *sql.Tx, surface, medium string) err
 func normalize(value string) string { return strings.ToLower(strings.Join(strings.Fields(value), " ")) }
 
 func slugify(value string) string {
-	value = strings.ToLower(value)
-	value = nonSlug.ReplaceAllString(value, "-")
-	return strings.Trim(value, "-")
+	normalized := strings.ToLower(value)
+	if slug := strings.Trim(nonSlug.ReplaceAllString(normalized, "-"), "-"); slug != "" {
+		return slug
+	}
+	sum := sha256.Sum256([]byte(normalized))
+	return "artwork-" + hex.EncodeToString(sum[:6])
 }
 
 func mediaURL(path string) string {

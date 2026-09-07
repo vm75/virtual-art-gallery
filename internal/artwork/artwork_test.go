@@ -58,6 +58,42 @@ func TestValidateInput(t *testing.T) {
 	}
 }
 
+func TestSlugifyFallbacksAndCollisions(t *testing.T) {
+	if got, want := slugify("Blue Hour"), "blue-hour"; got != want {
+		t.Fatalf("ASCII slug = %q, want %q", got, want)
+	}
+	if got, want := slugify("Café au lait"), "caf-au-lait"; got != want {
+		t.Fatalf("accented slug = %q, want %q", got, want)
+	}
+	for _, name := range []string{"日本語の作品", "!!!"} {
+		slug := slugify(name)
+		if !strings.HasPrefix(slug, "artwork-") || slug != slugify(name) {
+			t.Fatalf("fallback slug for %q = %q", name, slug)
+		}
+	}
+	db, err := store.Open(context.Background(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	r := NewRepository(db.DB())
+	first, err := r.Create(context.Background(), Input{Name: "日本語の作品", Date: "2024-01-01", Surface: "canvas", Medium: "oil"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := r.Create(context.Background(), Input{Name: "日本語の作品", Date: "2024-01-02", Surface: "canvas", Medium: "oil"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Slug == "" || second.Slug != first.Slug+"-2" {
+		t.Fatalf("fallback collisions = %q, %q", first.Slug, second.Slug)
+	}
+	updated, err := r.Update(context.Background(), first.Slug, Input{Name: "Renamed", Date: "2024-01-01", Surface: "canvas", Medium: "oil"})
+	if err != nil || updated.Slug != first.Slug {
+		t.Fatalf("update slug = %q, err=%v", updated.Slug, err)
+	}
+}
+
 func contains(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {
