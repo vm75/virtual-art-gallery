@@ -1,0 +1,36 @@
+name: quality
+
+on:
+  push:
+    branches: [rewrite]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd internal web)"
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: Build
+        run: CGO_ENABLED=0 go build -trimpath -o /tmp/gallery ./cmd/gallery
+      - name: Check browser modules
+        run: node --check web/static/museum.js && node --check web/static/gallery.js && node --check web/static/timeline.js && node --check web/static/texture-loader.js
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build OCI image
+        run: docker build -f Containerfile -t virtual-art-gallery:ci .

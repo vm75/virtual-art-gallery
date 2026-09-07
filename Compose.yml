@@ -1,0 +1,17 @@
+services:
+  gallery:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: vm75/virtual-art-gallery:latest
+    ports:
+      - "${GALLERY_PORT:-8080}:8080"
+    environment:
+      GALLERY_LISTEN_ADDR: ":8080"
+      GALLERY_DATA_DIR: /data
+      GALLERY_SECURE_COOKIES: "${GALLERY_SECURE_COOKIES:-false}"
+    volumes:
+      - gallery-data:/data
+
+volumes:
+  gallery-data:

@@ -41,7 +41,7 @@ The final container should:
 - handle SIGTERM cleanly;
 - provide a health endpoint suitable for container health checks.
 
-Configuration should be environment-based and intentionally small. Expected categories include:
+Configuration is environment-based and intentionally small:
 
 ```text
 GALLERY_LISTEN_ADDR
@@ -49,6 +49,33 @@ GALLERY_DATA_DIR
 GALLERY_BASE_URL      # only if needed for absolute URL generation
 GALLERY_SECURE_COOKIES # only if automatic/proxy detection is insufficient
 ```
+
+The current defaults are `GALLERY_LISTEN_ADDR=:8080`, `GALLERY_DATA_DIR=./data` for local runs (and `/data` in the image), and `GALLERY_SECURE_COOKIES=false`.
+
+The shipped `Containerfile` builds a static Go binary and runs it as UID 10001 in Alpine. `Compose.yml` exposes host `${GALLERY_PORT:-8080}` to container port 8080 and persists `/data` in the named `gallery-data` volume. The image healthcheck uses Alpine's bundled `wget` against `/healthz`.
+
+Validation on 2026-09-07: `podman build -f Containerfile ...` and a temporary rootless-compatible `podman run` passed health and UID checks. Docker Compose and Podman Compose were not installed in the execution environment.
+
+## Backup and restore
+
+Stop the application/container first so SQLite is not being written. Then back up the complete persistent directory, including `gallery.db`, originals, and derivatives:
+
+```sh
+docker compose -f Compose.yml stop gallery
+./scripts/backup.sh /path/to/gallery-data /path/to/backups/gallery-$(date +%Y%m%d).tar.gz
+```
+
+Restore into a new or empty data directory before starting a fresh container:
+
+```sh
+./scripts/restore.sh /path/to/backups/gallery-20260907.tar.gz /path/to/new-gallery-data
+```
+
+For a named volume, stop the service and run the scripts from a temporary helper container or copy the volume contents to a host directory; do not copy a live SQLite file. The restored application reruns forward migrations on startup. Keep backups from the same or older v1 schema and test a restore before upgrading. Rootless runtimes may need the restored directory ownership adjusted to the container’s non-root UID 10001.
+
+To reset a fresh installation, stop the service and remove the application data volume only after taking a backup; this permanently removes the database and uploaded images.
+
+Routine operations use `docker compose -f Compose.yml logs -f gallery` for logs, `... stop gallery` for graceful stop, and `... up -d --build gallery` for an upgrade. The same commands can be run with `podman compose` where that frontend is installed.
 
 Do not add environment variables preemptively. The actual names/defaults must be synchronized here once implemented.
 

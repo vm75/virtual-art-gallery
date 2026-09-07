@@ -35,6 +35,22 @@ Go application
 SQLite + data directory
 ```
 
+The current bootstrap process is `cmd/gallery`: it uses `net/http` with standard-library routing, reads `GALLERY_LISTEN_ADDR` (default `:8080`) and `GALLERY_DATA_DIR` (default `./data`), opens `gallery.db` in that data directory, exposes `GET /healthz`, and shuts down on SIGINT/SIGTERM with a ten-second deadline. Feature routes are added incrementally behind this single process.
+
+The admin boundary currently supports first-use setup at `/admin/setup`, login at `/admin/login`, authenticated `/admin/`, and POST logout. Passwords use bcrypt; sessions store only SHA-256 token digests with a 12-hour expiry, and a separate CSRF token is required for logout. `GALLERY_SECURE_COOKIES=true` enables the Secure cookie flag for TLS deployments.
+
+The current artwork admin UI uses `/admin/artworks/new` for multipart creation and `/admin/artworks/edit?slug=...` for metadata/visibility updates. Upload processing completes before image references are persisted; failed creates delete the draft record.
+
+Museum rules are persisted as one draft row and one published row. `/admin/museum` validates and saves draft JSON; `/admin/museum/publish` explicitly promotes it. `GET /api/museum` evaluates only the published snapshot against visible artworks and returns its version plus deterministic layout; an absent published snapshot is a public 404/fallback.
+
+Surfaces and mediums are small normalized value tables, seeded with common values and extended on valid artwork creation/update. Tags remain flexible normalized strings joined to artworks; filtering uses the same public API for every frontend.
+
+Public artwork JSON is served from `GET /api/artworks` and `GET /api/artworks/{slug}`. List filters are optional `tag`, `surface`, and `medium` query parameters; `order=asc` sorts oldest first, while the default is newest first. Only visible records are returned publicly. Each response includes an `image` object reserved for derivative URLs added by the image pipeline.
+
+JPEG derivatives are served below `/media/` with immutable cache headers. The media handler rejects traversal and original-image paths; original files remain application storage inputs rather than public display resources.
+
+All routes pass through security headers: restrictive same-origin CSP, `nosniff`, strict cross-origin referrer policy, and disabled unnecessary browser permissions. Static assets and immutable derivatives use long-lived immutable caching; original uploads are never a public media response.
+
 ## Proposed repository layout
 
 ```text
@@ -60,7 +76,7 @@ This is a direction, not a mandate to create packages before they are needed.
 
 ## Persistence
 
-Use SQLite in the configured data directory. Prefer a pure-Go SQLite driver so the default build does not require CGO. Migrations are versioned, run automatically at startup, and must be safe to run repeatedly.
+Use SQLite in the configured data directory through the pure-Go `modernc.org/sqlite` driver, so the default build does not require CGO. The application creates `<data-dir>/gallery.db`; embedded numbered SQL migrations are claimed and recorded in `schema_migrations` transactionally at startup, and concurrent/repeated starts are safe.
 
 Core records:
 
@@ -86,6 +102,8 @@ Rules:
 - Public pages use responsive derived images rather than downloading originals unnecessarily.
 - 3D museum textures are sized for GPU use and loaded/unloaded according to proximity/visibility.
 
+The image pipeline accepts decodable JPEG, PNG, and GIF uploads up to 20 MiB and 16,000 pixels per dimension by default. It retains the original and writes application-generated immutable paths for thumbnail (480px), medium (1200px), museum (2048px), and large (2400px) JPEG derivatives, preserving aspect ratio. Processing happens in a temporary directory and failed processing removes it; public consumers use derivatives rather than originals.
+
 ## Public frontend architecture
 
 Favor server-rendered semantic HTML with vanilla ES modules for interaction. Shared design tokens and tiny reusable CSS components are preferred over a large component framework.
@@ -99,6 +117,8 @@ Fastest and most accessible experience. Responsive grid, lazy loading, filters, 
 ### Timeline
 
 Chronological horizontal experience. Native scroll remains the primary mechanic. Enhance with snapping, center emphasis, subtle parallax/scale/fade, touch dragging, keyboard navigation, and `prefers-reduced-motion` behavior. Avoid scroll-jacking that prevents normal browser interaction.
+
+The current timeline is server-rendered at `/timeline/`, orders visible artworks oldest-first, uses medium derivatives with lazy loading, and applies CSS scroll snapping plus an optional IntersectionObserver emphasis class. Native horizontal scrolling remains available when JavaScript is absent.
 
 ### Museum
 
@@ -119,7 +139,19 @@ The semantic rule/layout layer must not depend on WebGL so it can be unit tested
 
 Rules operate on supported metadata (`tags`, `surface`, `medium`, date ranges) and map artworks into named exhibition groups plus simple layout/presentation parameters. No arbitrary code execution or user-authored script language.
 
+The rule contract is versioned JSON: `{version, seed, groups:[{id,name}], rules:[{id,priority,all:[{field,op,value/from/to}],group}]}`. Fields are `tag`, `surface`, `medium`, and `date`; text operators are `equals`/`contains`, and date operators are `before`/`after`/`between`. Rules are evaluated by descending priority and declaration order; the first matching rule wins. Invalid identifiers, unknown operators/fields, empty or oversized values, duplicate IDs, reversed date ranges, and unknown groups are rejected. Works matching no rule appear in `unclassified`.
+
 The generated museum is deterministic for a given published rule-set version/seed and artwork set.
+
+The baseline `/museum/` page loads only `museum.js`. It fetches visible artwork JSON, paints the first museum derivative into a small WebGL texture, and lists canonical artwork links. Browsers without WebGL receive an explicit Gallery Lite fallback. This baseline uses browser WebGL directly; no legacy build pipeline or ARTIC data source is included.
+
+The renderer-independent layout generator sorts group IDs and artwork slugs, creates one connected room per group plus an optional unclassified room, and emits stable room/connection/placement IDs from the seed and input. Each room reserves one doorway-aware set of three wall faces, with up to ten four-slot segments; excess work is reported in `errors` rather than dropped.
+
+Placement sizing uses a 2.4-unit target height and a 2.8-unit maximum width, preserving recorded image aspect ratio. `ValidatePlacements` rejects unknown rooms, duplicate artwork assignments, missing assignments, and references outside the evaluated artwork set before a scene is rendered or published.
+
+Museum texture loading is bounded by the rewrite-owned `TextureLoader` (six entries in the baseline), which loads on demand, preloads at most two adjacent entries, evicts least-recently-used distant entries, and leaves placement metadata independent of image object lifetime. The renderer keeps one active WebGL texture, exposes a culling predicate for room/spatial consumers, and falls back to a stable placeholder/flat scene when a request fails. Page teardown clears the loader and destroys WebGL resources.
+
+Museum controls expose keyboard/WASD movement, pointer drag look/movement, and visible directional buttons suitable for touch. Artwork entries open a native dialog with required metadata and a canonical detail link; the WebGL-unavailable state keeps Gallery Lite links visible.
 
 Artwork assignment must be explicit; do not rely on API order mapping artwork N to placement N.
 

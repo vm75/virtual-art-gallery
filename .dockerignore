@@ -1,0 +1,8 @@
+.git
+.gitignore
+.playwright-cli
+node_modules
+data
+*.db
+*.db-shm
+*.db-wal

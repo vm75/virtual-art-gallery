@@ -12,7 +12,7 @@ Before changing code, read:
 4. `ISSUE_TRACKER.md`
 5. the matching GitHub issue, when one exists
 
-GitHub Issues are currently disabled for this repository. Until they are enabled, the detailed `I-xxx` entries in `ISSUE_TRACKER.md` are the authoritative issue specifications and should be executed exactly as if they were GitHub Issues.
+GitHub Issues are enabled for this repository. The linked GitHub issue is authoritative for detailed scope and acceptance criteria; `ISSUE_TRACKER.md` is the compact execution ledger.
 
 The `legacy` branch is reference material only. Do not merge it wholesale. Copy/adapt only code that is justified by the current issue and compatible with the rewrite architecture/licensing.
 
@@ -68,6 +68,9 @@ go fmt ./...
 go vet ./...
 go test ./...
 ```
+
+The bootstrap implementation currently uses `go run ./cmd/gallery`, with `GALLERY_LISTEN_ADDR` defaulting to `:8080`, `GALLERY_DATA_DIR` defaulting to `./data`, and `GALLERY_SECURE_COOKIES` defaulting to false.
+CI also checks `test -z "$(gofmt -l cmd internal web)"`, all browser modules with `node --check`, a production build, and the OCI `Containerfile`.
 
 Frontend checks should be dependency-light. Prefer browser/integration tests only where they protect important interactions; do not build a heavyweight testing stack without need.
 

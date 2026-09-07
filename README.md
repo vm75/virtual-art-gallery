@@ -48,6 +48,50 @@ Every change that alters architecture, operation, configuration, deployment, rou
 - `legacy` — snapshot of the pre-rewrite application.
 - `rewrite` — clean rewrite and active implementation branch.
 
+## Local development
+
+The rewrite is a single Go process. Go 1.26 or newer is required.
+
+```sh
+go run ./cmd/gallery
+curl http://localhost:8080/healthz
+```
+
+The default listen address is `:8080`; configure it with `GALLERY_LISTEN_ADDR`. The persistent data directory is configured with `GALLERY_DATA_DIR` and defaults to `./data`; startup creates `gallery.db` and runs embedded migrations there.
+
+The current public data endpoint is `GET /api/artworks` with optional `tag`, `surface`, `medium`, and `order=asc` filters. Artwork detail JSON is available at `GET /api/artworks/{slug}`.
+
+Canonical semantic artwork pages are available at `/artwork/{slug}` and link taxonomy values back to Gallery Lite filters.
+
+On a fresh data directory, visit `/admin/` to create the single administrator. Subsequent visits use the login flow. Set `GALLERY_SECURE_COOKIES=true` when serving through HTTPS.
+
+Authenticated admin users can add artwork at `/admin/artworks/new` and edit existing records from the `/admin/` list. The upload form accepts the required metadata and controls public visibility.
+
+Authenticated administrators edit museum rules at `/admin/museum`; saving creates a validated draft and publishing is an explicit separate action. The public museum consumes only the published `/api/museum` snapshot.
+
+Surface and medium values are normalized (trimmed and case-folded) and newly entered values are retained in the database for subsequent selection/filtering.
+
+Artwork uploads accept JPEG, PNG, or GIF up to 20 MiB and are stored under the configured data directory with generated names. The image pipeline retains originals and creates thumbnail, medium, museum, and large JPEG derivatives.
+
+Quality gates:
+
+```sh
+gofmt -w .
+go vet ./...
+go test ./...
+```
+
+Container development uses the portable Compose file:
+
+```sh
+docker compose -f Compose.yml up --build
+# or: podman compose -f Compose.yml up --build
+```
+
+The container listens on port 8080, stores persistent state under `/data`, runs as a non-root user, and accepts `GALLERY_PORT`, `GALLERY_SECURE_COOKIES`, `GALLERY_LISTEN_ADDR`, and `GALLERY_DATA_DIR` configuration as documented in `DOCKERHUB.md`.
+
+For operations, stop the service before copying persistent data. Use `scripts/backup.sh` and `scripts/restore.sh` as documented in `DOCKERHUB.md`; the procedure backs up SQLite and all image files together and never recommends copying a live database.
+
 ## Status
 
-Planning baseline only. GitHub Issues are currently disabled at the repository level, so `ISSUE_TRACKER.md` is temporarily the authoritative executable backlog and contains issue-ready scope/acceptance criteria. Once GitHub Issues are enabled, each tracker item should be created as a matching issue and linked back into the tracker.
+Implementation is proceeding through the ordered issue ledger in `ISSUE_TRACKER.md`, with each item linked to its authoritative GitHub issue.
