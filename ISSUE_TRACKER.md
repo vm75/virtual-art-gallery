@@ -1,6 +1,6 @@
 # V1 Release Hardening Tracker
 
-This tracker is the active execution ledger after the 2026-09-07 independent second review of `fix/v1-remediation`. The previous remediation tracker and its completion claims remain available in Git history, but they are not current release status.
+This tracker is the active execution ledger after the 2026-09-07 independent second review of `fix/v1-remediation` and the subsequent third-review follow-up on `fix/v1-release-hardening`. Previous completion claims remain available in Git history, but current status is authoritative here.
 
 ## Branch contract
 
@@ -35,16 +35,16 @@ This tracker is the active execution ledger after the 2026-09-07 independent sec
 | Order | ID | GitHub | Status | Finding / work item | Depends on | Commit |
 |---:|---|---:|:---:|---|---|---|
 | 1 | R-034 | [#34](https://github.com/vm75/virtual-art-gallery/issues/34) | [x] | Reset tracker and canonical branch contract | — | `docs(#34): reset v1 hardening tracker` |
-| 2 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [x] | Fix degenerate museum camera/view matrix and add real renderer validation | R-034 | `fix(#13): correct museum camera view matrix` |
+| 2 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [~] | Preserve a right-handed museum camera/view basis and revalidate the actual renderer | R-034 | `4a8935a` |
 | 3 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [x] | Make logical room connections physically continuous/traversable | R-034 | `fix(#15): connect generated museum rooms` |
-| 4 | I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [x] | Add collision-aware movement constrained to rooms/doorways/connectors | I-013, I-015 | `fix(#18): constrain museum navigation` |
+| 4 | I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [~] | Prevent swept-path wall tunneling and make canvas taps select the actual rendered artwork | I-013, I-015 | `e0c9578` |
 | 5 | I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [x] | Stop repeated GPU texture delete/re-upload during ordinary navigation | I-013 | `fix(#17): reuse resident museum textures` |
 | 6 | I-019 | [#19](https://github.com/vm75/virtual-art-gallery/issues/19) | [x] | Preserve focus/caret in structured rule editor and make preview actionable | R-034 | `fix(#19): stabilize museum rule editor` |
 | 7 | R-033 | [#33](https://github.com/vm75/virtual-art-gallery/issues/33) | [x] | Bound total upload requests and decoded-image pixel/memory use | R-034 | `fix(#33): bound upload resource usage` |
 | 8 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | Cover all museum JS modules/pure logic and restore container build gating | I-013, I-017, I-019 | `ci(#21): cover museum modules and container build` |
 | 9 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [x] | Re-run security/accessibility/performance audit after concrete fixes | I-013, I-015, I-017, I-018, I-019, R-033, I-021 | `docs(#22): record post-fix hardening audit` |
-| 10 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [x] | Fresh-install/end-to-end release validation including actual WebGL | all above | `docs(#24): record fresh-install release validation` |
-| 11 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [x] | Final v1 release acceptance gate | I-024 | `docs(#1): record final v1 acceptance gate` |
+| 10 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [ ] | Fresh-install/end-to-end release validation including actual WebGL | all above | prior acceptance invalidated |
+| 11 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [ ] | Final v1 release acceptance gate | I-024 | prior acceptance invalidated |
 
 ## Second-review findings that invalidated the prior release gate
 
@@ -58,6 +58,17 @@ This tracker is the active execution ledger after the 2026-09-07 independent sec
 - Upload parsing does not cap the total request body before multipart parsing, and decoded image pixel/memory use is too permissive.
 - Prior browser smoke used WebGL-unavailable fallbacks, so actual renderer behavior was not sufficiently validated.
 
+## Third-review follow-up
+
+A later implementation review found four remaining museum correctness gaps after the previous hardening claims:
+
+- the camera basis was orthonormal but vertically reflected because its up vector used the wrong cross-product order;
+- collision checked only the movement endpoint, allowing a diagonal step to tunnel through a doorway jamb when the endpoint happened to be valid;
+- a canvas tap ignored tap coordinates and opened the nearest visible artwork rather than the artwork plane actually tapped;
+- native touch gestures could take over canvas drag-to-look behavior.
+
+Focused fixes now exist in `4a8935a` and `e0c9578`. PR #35 quality run `34167759026` passed formatting, vet, full Go tests, production build, syntax checks for every shipped browser module, every pure museum browser test, and the OCI container build at head `e0c9578`. #13 and #18 remain open until the required actual-WebGL renderer/desktop/mobile interaction smoke is rerun on the new behavior. #24 and #1 remain open behind those validations.
+
 ## Required final validation
 
 Before #24/#1 can close, demonstrate at minimum:
@@ -69,7 +80,7 @@ Before #24/#1 can close, demonstrate at minimum:
 - Gallery Lite and Timeline keyboard/touch/mobile/reduced-motion behavior;
 - structured museum rule editing with normal multi-character typing, actionable preview, failed-publish isolation, and deterministic publish;
 - deterministic room/corridor layout with physical reachability and unique renderer-ready placements;
-- actual WebGL rendering with a valid initial camera, walls/floors/connectors/artworks visible, collision-aware desktop/mobile navigation, and artwork inspection;
+- actual WebGL rendering with a valid right-handed initial camera, walls/floors/connectors/artworks visible, collision-aware desktop/mobile navigation, canvas artwork hit-testing, and artwork inspection;
 - bounded room-aware GPU texture residency without repeated uploads during stationary-room navigation;
 - security/accessibility/performance re-audit with no critical/high or acceptance-blocking finding;
 - documentation audit confirming `main` is canonical, `legacy` is reference-only, and deleted `rewrite` is not an active target.
@@ -85,19 +96,19 @@ Before #24/#1 can close, demonstrate at minimum:
 | 6 | Password/session/CSRF/header and upload-bound tests; I-022 audit. | Pass |
 | 7–8 | Fresh admin upload/edit/visibility smoke; derivative/image behavior tests. | Pass |
 | 9–10 | Gallery and Timeline keyboard/touch/mobile/reduced-motion coverage from I-022/I-024. | Pass |
-| 11–12 | Actual WebGL desktop/mobile smokes plus deterministic layout, collision, and texture-residency tests. | Pass |
+| 11–12 | New right-handed camera, swept collision and precise artwork-picking tests pass; actual-WebGL desktop/mobile re-smoke on `e0c9578` is still required. | Pending |
 | 13 | Draft editor focus, preview, failed-publish isolation, and publish tests/smoke. | Pass |
 | 14–16 | Canonical detail, responsive/focus/accessibility, and visual-system audit coverage. | Pass |
-| 17–18 | Full Go/JS checks, CI definition, graceful shutdown and health tests/smokes. | Pass |
+| 17–18 | PR #35 run `34167759026` passed full Go/JS checks, production build, and OCI container build; graceful shutdown and health tests/smokes already recorded. | Pass |
 | 19 | Documentation audit; active branch contract synchronized. | Pass |
-| 20 | Every tracker hardening item complete; I-022 found no critical/high or blocking defect; #24 closed. | Pass |
+| 20 | #13, #18, #24 and #1 are open pending actual-WebGL revalidation; no release-gate completion claim is current. | Pending |
 
 ## I-022 audit findings
 
 | Area | Evidence | Result |
 |---|---|---|
 | Security/data | Public repositories use visible-only queries; HTML output escapes metadata; CSRF/session tests, upload-bound tests, headers, cache tests, and media traversal check pass. | No critical/high finding. |
-| Accessibility | Mobile browser smoke covered public routes, focusable controls, no public admin link, WebGL museum controls; rule-editor focus smoke passed. | No acceptance-blocking finding. |
+| Accessibility | Mobile browser smoke covered public routes, focusable controls, no public admin link, WebGL museum controls; rule-editor focus smoke passed. | No acceptance-blocking finding recorded; final museum interaction re-smoke remains under #18/#24. |
 | Performance | Responsive lazy derivatives, bounded texture lifecycle test, static revalidation, immutable generated media, and OCI build passed. | No acceptance-blocking finding. |
 
 ## Execution log
@@ -118,5 +129,10 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 R-033 [x] — issue #33 — `fix(#33): bound upload resource usage` — total multipart request capped at 21 MiB before parse, temporary multipart files removed, and image config rejects more than 40 million decoded pixels before full decode while retaining size/format/dimension checks. Tests cover controlled 413 oversized valid multipart/no artwork row, decoded-pixel rejection and boundary, and normal upload. `go vet ./...`; `go test ./...`; production build; all browser-module syntax checks; all museum module tests; `git diff --check`; README/Architecture documented.
 2026-09-07 I-021 [x] — issue #21 — `ci(#21): cover museum modules and container build` — CI dynamically syntax-checks every shipped static JS module, runs all pure browser tests, and has a separate OCI build job on main push/PR. Local equivalent passed formatting, vet, full Go tests, production build, all JS syntax/tests, diff check; rootless Podman build produced `localhost/virtual-art-gallery:ci`. README/AGENTS synchronized.
 2026-09-07 I-022 [x] — issue #22 — `docs(#22): record post-fix hardening audit` — reviewed auth/CSRF/header/upload/data/escaping/cache paths; mobile browser audit verified public routes have no admin link, focusable controls, actual WebGL museum controls, and fallback absence; static revalidation/media traversal checks pass. Findings table records no critical/high or acceptance-blocking defect. Full Go/JS/build/diff gates pass.
-2026-09-07 I-024 [x] — issue #24 — `docs(#24): record fresh-install release validation` — fresh data setup/login/admin/artwork/rules and actual WebGL desktop/mobile smokes completed across #13/#15/#17/#18/#19/#33; collision, corridors, inspection, focus/editor, visibility/alt/slug/filter, and safe upload bounds covered by focused tests/smokes. Rootless Podman OCI build succeeded; an unprivileged UID 10001 container served `/healthz`, wrote its named `/data` volume, and retained `gallery.db` after recreation. Stopped-data backup/restore preserved 2 artwork records. Full formatting/vet/test/build/all JS syntax+tests/diff gates pass. Docs branch contract synchronized; no image/tag published.
-2026-09-07 I-001 [x] — issue #1 — `docs(#1): record final v1 acceptance gate` — all tracker items and #24 are closed; the 20 global acceptance criteria are mapped above to current evidence. Final local gate passed: formatting, `go vet ./...`, `go test ./...`, production build, every shipped JS syntax check/test, and `git diff --check`. Rootless Podman Compose configuration validated and a service from the local OCI image served `/healthz`; direct non-root run/recreation and stopped-data backup/restore are recorded under I-024. I-022 records no critical/high or acceptance-blocking defect. PR #35 targeting `main` passed its `test` and OCI `container` CI jobs.
+2026-09-07 I-024 [x] — issue #24 — `docs(#24): record fresh-install release validation` — historical acceptance later invalidated by third-review museum findings; keep this entry as history only.
+2026-09-07 I-001 [x] — issue #1 — `docs(#1): record final v1 acceptance gate` — historical acceptance later invalidated by third-review museum findings; keep this entry as history only.
+2026-09-07 THIRD-REVIEW — reopened #13, #18, #24 and #1 after finding a vertically reflected camera basis, endpoint-only collision tunneling, nearest-artwork canvas taps, and native touch-gesture interference. #15, #17, #19, #21 and #33 remain closed.
+2026-09-07 I-013 [~] — issue #13 — `4a8935a` — corrected the up-vector cross-product order and added right-handedness regression coverage (`right × up == back`); PR #35 run `34167759026` passes full test/JS/build gates. Actual-WebGL renderer re-smoke on the new head remains required before closure.
+2026-09-07 I-018 [~] — issue #18 — `e0c9578` — movement samples the swept path at <=5 cm, focused tests block diagonal doorway-jamb tunneling while allowing valid doorway traversal; new pure ray/plane picking tests verify tap-target selection and empty-space no-op; canvas disables native touch gestures for drag-look. PR #35 run `34167759026` passes full test/JS/build gates. Actual-WebGL desktop/mobile interaction re-smoke remains required before closure.
+2026-09-07 I-024 [ ] — issue #24 — reopened; pending successful actual-WebGL renderer/navigation/picking re-smoke after #13/#18 follow-up fixes.
+2026-09-07 I-001 [ ] — issue #1 — reopened; final v1 release gate remains pending #24.
