@@ -42,7 +42,7 @@ This tracker is the active execution ledger after the 2026-09-07 independent sec
 | 6 | I-019 | [#19](https://github.com/vm75/virtual-art-gallery/issues/19) | [x] | Preserve focus/caret in structured rule editor and make preview actionable | R-034 | `fix(#19): stabilize museum rule editor` |
 | 7 | R-033 | [#33](https://github.com/vm75/virtual-art-gallery/issues/33) | [x] | Bound total upload requests and decoded-image pixel/memory use | R-034 | `fix(#33): bound upload resource usage` |
 | 8 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | Cover all museum JS modules/pure logic and restore container build gating | I-013, I-017, I-019 | `ci(#21): cover museum modules and container build` |
-| 9 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [ ] | Re-run security/accessibility/performance audit after concrete fixes | I-013, I-015, I-017, I-018, I-019, R-033, I-021 | — |
+| 9 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [x] | Re-run security/accessibility/performance audit after concrete fixes | I-013, I-015, I-017, I-018, I-019, R-033, I-021 | `docs(#22): record post-fix hardening audit` |
 | 10 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [ ] | Fresh-install/end-to-end release validation including actual WebGL | all above | — |
 | 11 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [ ] | Final v1 release acceptance gate | I-024 | — |
 
@@ -74,6 +74,14 @@ Before #24/#1 can close, demonstrate at minimum:
 - security/accessibility/performance re-audit with no critical/high or acceptance-blocking finding;
 - documentation audit confirming `main` is canonical, `legacy` is reference-only, and deleted `rewrite` is not an active target.
 
+## I-022 audit findings
+
+| Area | Evidence | Result |
+|---|---|---|
+| Security/data | Public repositories use visible-only queries; HTML output escapes metadata; CSRF/session tests, upload-bound tests, headers, cache tests, and media traversal check pass. | No critical/high finding. |
+| Accessibility | Mobile browser smoke covered public routes, focusable controls, no public admin link, WebGL museum controls; rule-editor focus smoke passed. | No acceptance-blocking finding. |
+| Performance | Responsive lazy derivatives, bounded texture lifecycle test, static revalidation, immutable generated media, and OCI build passed. | No acceptance-blocking finding. |
+
 ## Execution log
 
 Append entries; do not erase hardening history.
@@ -91,3 +99,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 I-019 [x] — issue #19 — `fix(#19): stabilize museum rule editor` — text edits now mutate draft state in place and preserve focus/caret; structural changes rerender explicitly. Preview lists unclassified artwork name/slug and layout errors accessibly. Focused admin test covers details; Playwright + Xvfb smoke typed `Contemporary` with focus retained, added a group, saved, and saw unclassified artwork detail. `go vet ./...`; `go test ./...`; production build; all browser-module syntax checks; all museum module tests; `git diff --check`; Architecture documented.
 2026-09-07 R-033 [x] — issue #33 — `fix(#33): bound upload resource usage` — total multipart request capped at 21 MiB before parse, temporary multipart files removed, and image config rejects more than 40 million decoded pixels before full decode while retaining size/format/dimension checks. Tests cover controlled 413 oversized valid multipart/no artwork row, decoded-pixel rejection and boundary, and normal upload. `go vet ./...`; `go test ./...`; production build; all browser-module syntax checks; all museum module tests; `git diff --check`; README/Architecture documented.
 2026-09-07 I-021 [x] — issue #21 — `ci(#21): cover museum modules and container build` — CI dynamically syntax-checks every shipped static JS module, runs all pure browser tests, and has a separate OCI build job on main push/PR. Local equivalent passed formatting, vet, full Go tests, production build, all JS syntax/tests, diff check; rootless Podman build produced `localhost/virtual-art-gallery:ci`. README/AGENTS synchronized.
+2026-09-07 I-022 [x] — issue #22 — `docs(#22): record post-fix hardening audit` — reviewed auth/CSRF/header/upload/data/escaping/cache paths; mobile browser audit verified public routes have no admin link, focusable controls, actual WebGL museum controls, and fallback absence; static revalidation/media traversal checks pass. Findings table records no critical/high or acceptance-blocking defect. Full Go/JS/build/diff gates pass.
