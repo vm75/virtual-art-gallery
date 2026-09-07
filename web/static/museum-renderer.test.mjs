@@ -10,6 +10,14 @@ function dot(a, b) {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
+function cross(a, b) {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
 for (const [yaw, pitch] of [[0, 0], [.7, .3], [-1.2, -.6], [2.4, 1.1]]) {
   const camera = new MuseumCamera({ x: 4, y: 1.6, z: -3 });
   camera.yaw = yaw;
@@ -22,6 +30,8 @@ for (const [yaw, pitch] of [[0, 0], [.7, .3], [-1.2, -.6], [2.4, 1.1]]) {
   assert.ok(Math.abs(dot(basis[0], basis[1])) < 1e-9, 'right and up are orthogonal');
   assert.ok(Math.abs(dot(basis[0], basis[2])) < 1e-9, 'right and back are orthogonal');
   assert.ok(Math.abs(dot(basis[1], basis[2])) < 1e-9, 'up and back are orthogonal');
+  const handed = cross(basis[0], basis[1]);
+  for (let axis = 0; axis < 3; axis++) assert.ok(Math.abs(handed[axis] - basis[2][axis]) < 1e-9, 'right × up equals back');
 }
 
 console.log('museum view matrix basis tests passed');

@@ -33,11 +33,11 @@ export function viewMatrix(camera) {
   const target = camera.target(), eye = camera.position;
   let zx = eye.x - target.x, zy = eye.y - target.y, zz = eye.z - target.z;
   const zLength = Math.hypot(zx, zy, zz) || 1; zx /= zLength; zy /= zLength; zz /= zLength;
-  // The right vector is world-up × view-back. Using view-back's y component
-  // here collapses at the normal horizontal starting orientation.
+  // Right is world-up × view-back, and up is view-back × right. Keeping that
+  // order produces a right-handed orthonormal basis instead of a reflected one.
   let xx = zz, xy = 0, xz = -zx;
   const xLength = Math.hypot(xx, xy, xz) || 1; xx /= xLength; xy /= xLength; xz /= xLength;
-  const yx = xy * zz - xz * zy, yy = xz * zx - xx * zz, yz = xx * zy - xy * zx;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
   return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0, -(xx * eye.x + xy * eye.y + xz * eye.z), -(yx * eye.x + yy * eye.y + yz * eye.z), -(zx * eye.x + zy * eye.y + zz * eye.z), 1];
 }
 
