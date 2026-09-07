@@ -1,105 +1,83 @@
-# Autonomous Implementation Issue Tracker
+# V1 Remediation Tracker
 
-GitHub Issues are enabled and are the authoritative source for each work item's detailed scope, acceptance criteria, and discussion. This file is the compact execution ledger for autonomous agents.
+This file replaces the original implementation-completion ledger after an independent review of `main` found acceptance-blocking gaps. Historical completion claims from the previous tracker are intentionally not carried forward as current status.
 
-## Agent workflow
+## Branch contract
 
-1. Read `AGENTS.md`, `README.md`, `ARCHITECTURE.md`, and `IMPLEMENTATION_PLAN.md`.
-2. Select the next open issue whose dependencies are complete.
-3. Read the full linked GitHub issue before changing code.
-4. Mark the tracker item `[~]` when work starts.
-5. Implement only the issue scope and verify every acceptance criterion.
-6. Update affected documentation in the same change.
-7. Mark `[x]` only after validation is complete and record the commit/PR and tests in the execution log.
-8. Record blockers as `[!]`; do not guess around true blockers.
-9. Put discovered non-required work in a separate GitHub issue and add it to this tracker if it becomes part of the approved plan.
+- `main` — canonical/default product branch.
+- `legacy` — pre-rewrite reference implementation only; never merge wholesale.
+- `rewrite` — deleted. Historical issue text mentioning it is superseded by current issue comments and this tracker.
+- `fix/v1-remediation` — active branch for all work in this tracker. Merge to `main` only after the release gates pass.
 
-KISS and YAGNI are mandatory. The `legacy` branch is reference material only.
+Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat: complete virtual art gallery v1 rewrite`).
+
+## Agent execution rules
+
+1. Read `AGENTS.md`, `README.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_PLAN.md`, this tracker, and the full linked GitHub issue before changing code.
+2. Work only on `fix/v1-remediation` for this corrective cycle.
+3. Select the next open item whose dependencies are complete. Parallel work is allowed only when files and architectural boundaries do not conflict.
+4. Implement one issue at a time. **Each issue that changes repository content must have its own distinct issue-scoped commit.** Do not combine unrelated tracker items in one commit.
+5. Commit messages should identify the issue, for example `fix(#26): enforce sqlite foreign keys per connection`.
+6. Run issue-specific tests plus applicable global quality gates before marking complete.
+7. Update affected docs/tests in the same issue commit. Do not defer documentation to a later bulk cleanup except where #31 explicitly owns the branch/workflow transition.
+8. Record the commit SHA and validation evidence here and in the GitHub issue before closing it.
+9. Do not mark an issue complete merely because code exists; every acceptance criterion must be demonstrated.
+10. Keep KISS and YAGNI. If a required fix reveals genuinely separate work, create a focused GitHub issue and add it here before implementing it.
 
 ## Status legend
 
-- `[ ]` ready/not started
+- `[ ]` open / ready when dependencies are satisfied
 - `[~]` in progress
-- `[x]` complete and acceptance criteria verified
-- `[!]` blocked
+- `[x]` acceptance criteria verified
+- `[!]` blocked; blocker must be recorded
 
-## Ordered backlog
+## Ordered remediation backlog
 
-| ID | GitHub | Status | Work item | Depends on |
-|---|---:|:---:|---|---|
-| I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [x] | V1 rewrite scope and release acceptance gate | planning baseline |
-| I-002 | [#2](https://github.com/vm75/virtual-art-gallery/issues/2) | [x] | Bootstrap Go app, config, health, shutdown, and test harness | I-001 |
-| I-003 | [#3](https://github.com/vm75/virtual-art-gallery/issues/3) | [x] | SQLite store and migration runner | I-002 |
-| I-004 | [#4](https://github.com/vm75/virtual-art-gallery/issues/4) | [x] | Artwork domain, persistence, and public read API | I-003 |
-| I-005 | [#5](https://github.com/vm75/virtual-art-gallery/issues/5) | [x] | Image upload, storage, and derivative pipeline | I-003, I-004 |
-| I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [x] | Single-admin first-use setup, login, sessions, and CSRF | I-003 |
-| I-007 | [#7](https://github.com/vm75/virtual-art-gallery/issues/7) | [x] | Admin artwork create/edit/upload/visibility UI | I-004, I-005, I-006 |
-| I-008 | [#8](https://github.com/vm75/virtual-art-gallery/issues/8) | [x] | Tags, surfaces, mediums metadata management and filtering | I-004, I-006 |
-| I-009 | [#9](https://github.com/vm75/virtual-art-gallery/issues/9) | [x] | Shared visual tokens, responsive shell, and public home | I-002 |
-| I-010 | [#10](https://github.com/vm75/virtual-art-gallery/issues/10) | [x] | Canonical artwork detail pages and deep-link contract | I-004, I-005, I-009 |
-| I-011 | [#11](https://github.com/vm75/virtual-art-gallery/issues/11) | [x] | Gallery Lite responsive frontend | I-004, I-005, I-009, I-010 |
-| I-012 | [#12](https://github.com/vm75/virtual-art-gallery/issues/12) | [x] | Horizontal chronological Timeline frontend | I-004, I-005, I-009, I-010 |
-| I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [x] | Museum renderer baseline adapted selectively from legacy | I-002, I-005 |
-| I-014 | [#14](https://github.com/vm75/virtual-art-gallery/issues/14) | [x] | Museum rule schema, validation, grouping contract | I-004, I-008 |
-| I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [x] | Deterministic dynamic room/layout generator | I-014 |
-| I-016 | [#16](https://github.com/vm75/virtual-art-gallery/issues/16) | [x] | Explicit metadata-driven artwork placement | I-013, I-015 |
-| I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [x] | Room-aware museum texture loading and culling lifecycle | I-013, I-016 |
-| I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [x] | Museum desktop/mobile controls and artwork inspection | I-010, I-013, I-016 |
-| I-019 | [#19](https://github.com/vm75/virtual-art-gallery/issues/19) | [x] | Admin museum rules draft, preview, and publish workflow | I-006, I-014, I-015, I-016 |
-| I-020 | [#20](https://github.com/vm75/virtual-art-gallery/issues/20) | [x] | Portable non-root Containerfile and Compose.yml | I-002, I-003, I-005, I-006 |
-| I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | CI and repeatable quality gates | I-002 and incremental features |
-| I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [x] | Security, accessibility, and performance hardening | I-007, I-011, I-012, I-018, I-019 |
-| I-023 | [#23](https://github.com/vm75/virtual-art-gallery/issues/23) | [x] | Backup/restore and operational readiness | I-003, I-005, I-020 |
-| I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [x] | End-to-end fresh-install acceptance and v1 release | all v1 items |
-| I-025 | — | [x] | Versioned container builds published to Docker Hub and GHCR from tag/manual CI | I-021, I-024 |
+| Order | ID | GitHub | Status | Work item | Depends on | Commit |
+|---:|---|---:|:---:|---|---|---|
+| 1 | R-031 | [#31](https://github.com/vm75/virtual-art-gallery/issues/31) | [ ] | Update branch/documentation contract from rewrite to main + remediation flow | — | — |
+| 2 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [ ] | CI and repeatable quality gates: target `main`/PRs correctly | R-031 | — |
+| 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [ ] | Fix single-admin login throttle identity and bounded cleanup | — | — |
+| 4 | R-026 | [#26](https://github.com/vm75/virtual-art-gallery/issues/26) | [ ] | Enforce SQLite foreign keys on every connection | — | — |
+| 5 | R-025 | [#25](https://github.com/vm75/virtual-art-gallery/issues/25) | [ ] | Version static assets or stop immutable caching stable URLs | — | — |
+| 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [ ] | Add artwork alt text editing and accessible image-link fallback | — | — |
+| 7 | R-028 | [#28](https://github.com/vm75/virtual-art-gallery/issues/28) | [ ] | Make artwork slugs robust for non-ASCII titles | — | — |
+| 8 | R-029 | [#29](https://github.com/vm75/virtual-art-gallery/issues/29) | [ ] | Improve derivative resizing quality and pixel bounds | — | — |
+| 9 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [ ] | Fix deterministic room geometry/capacity and placement-location collisions | — | — |
+| 10 | I-016 | [#16](https://github.com/vm75/virtual-art-gallery/issues/16) | [ ] | Emit/validate renderer-ready artwork transforms and unique placements | I-015 | — |
+| 11 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [ ] | Render actual generated 3D rooms/walls/artworks with spatial camera | I-015, I-016, R-029 | — |
+| 12 | I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [ ] | Implement real room/spatial-aware texture loading/culling lifecycle | I-013, I-016, R-029 | — |
+| 13 | I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [ ] | Make desktop/mobile controls operate on the real 3D scene and select rendered art | I-013, I-016 | — |
+| 14 | I-019 | [#19](https://github.com/vm75/virtual-art-gallery/issues/19) | [ ] | Build form-based museum rule editor and reject invalid generated layouts at publish | I-015, I-016 | — |
+| 15 | R-030 | [#30](https://github.com/vm75/virtual-art-gallery/issues/30) | [ ] | Bring admin UI into responsive Material-inspired visual system | I-019, R-027 | — |
+| 16 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [ ] | Re-run security/accessibility/performance hardening after concrete fixes | I-006, R-025, R-026, R-027, R-028, R-029, R-030, I-017, I-018, I-019 | — |
+| 17 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [ ] | End-to-end fresh-install acceptance and v1 release validation | all items above | — |
+| 18 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [ ] | Final v1 release acceptance gate | I-024 | — |
 
-## Dependency guidance
+Previously completed issues not listed above remain historical unless a remediation issue changes their behavior. They are still subject to regression verification during I-022/I-024.
 
-The issue number is not by itself a requirement to work strictly serially. Agents may take any open item whose listed dependencies are complete. Avoid parallel changes that touch the same architectural boundary unless coordination is explicit.
+## Required validation before final gate
 
-`I-001/#1` is the project-wide release gate. It should remain open while implementation proceeds and close only after the final acceptance evidence is complete.
+At minimum, the final acceptance run must demonstrate:
 
-`I-021/#21` should be introduced early enough to protect subsequent work and expanded only when new quality gates actually exist.
+- `gofmt` check, `go vet ./...`, `go test ./...`, production Go build, browser-module syntax checks, and CI success for the actual branch model;
+- clean fresh install, one-admin setup/login/logout and stable throttling behavior;
+- artwork upload/edit/visibility/alt text, filtering, canonical pages, non-ASCII-title slug behavior, safe derivatives and media delivery;
+- Gallery Lite and Timeline keyboard/touch/mobile/reduced-motion behavior;
+- museum rule builder draft/preview/publish including rejection of collisions/capacity-invalid layouts;
+- deterministic generated rooms with unique renderer-ready artwork transforms;
+- actual 3D walls/floor/artworks, spatial camera/navigation/collision, 3D artwork selection, desktop and mobile controls;
+- bounded room/spatial-aware texture residency and cleanup;
+- safe static caching across upgrades and SQLite foreign-key enforcement;
+- non-root OCI build/run, Docker/Compose semantics where available, rootless Podman semantics, persistence, backup and restore;
+- documentation audit for `README.md`, `ARCHITECTURE.md`, `AGENTS.md`, `DOCKERHUB.md`, `IMPLEMENTATION_PLAN.md`, and this tracker.
 
-## Agent execution log
+## Execution log
 
-Append concise entries; never erase prior blocker/fix history.
-
-Suggested format:
+Append entries; do not erase prior remediation history.
 
 ```text
-YYYY-MM-DD I-xxx [~|x|!] agent/actor — issue #N — commit/PR — tests run — note/blocker
+YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise note
 ```
 
-2026-09-07 I-002 x — issue #2 — bootstrap server/config/health complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`, live health/shutdown smoke.
-2026-09-07 I-003 x — issue #3 — pure-Go SQLite migrations complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`, concurrent migration test.
-2026-09-07 I-004 x — issue #4 — artwork CRUD/public API complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`.
-2026-09-07 I-005 x — issue #5 — validated image derivatives/media serving complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`.
-2026-09-07 I-006 x — issue #6 — single-admin setup/login/session/CSRF boundary complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; authoritative criteria checked with `gh issue view 6`.
-2026-09-07 I-007 x — issue #7 — authenticated artwork upload/edit/visibility workflow complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; admin HTTP test covers protected access, multipart create, derivative persistence, and edit.
-2026-09-07 I-008 x — issue #8 — normalized taxonomy persistence, autocomplete, and filtering complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; taxonomy values are transactionally retained and admin forms expose current values.
-2026-09-07 I-009 x — issue #9 — responsive public shell, design tokens, and public home complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; home test confirms only the three public experiences are linked.
-2026-09-07 I-010 x — issue #10 — canonical escaped artwork detail pages with responsive srcset complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; visible/hidden/not-found and HTML escaping tests pass.
-2026-09-07 I-011 x — issue #11 — responsive lazy image grid, URL filters, progressive lightbox, keyboard/touch navigation complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; server-rendered detail links remain available without JavaScript.
-2026-09-07 I-012 x — issue #12 — chronological native-scroll timeline with snap cards, lazy images, and reduced-motion-safe enhancement complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`.
-2026-09-07 I-013 x — issue #13 — rewrite-owned WebGL museum baseline with dynamic API artwork texture, fallback, and isolated asset loading complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; no legacy code or Browserify pipeline imported.
-2026-09-07 I-014 x — issue #14 — versioned renderer-independent rule validation/evaluation with priority and unclassified output complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; invalid identifiers/fields/operators and conflicting priority behavior covered.
-2026-09-07 I-015 x — issue #15 — deterministic connected room/placement plan with capacity errors complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; deterministic, explicit placement, connectivity, and overflow tests pass.
-2026-09-07 I-016 x — issue #16 — aspect-aware explicit artwork placement validation complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; placements include stable IDs, room references, aspect sizing, and duplicate/missing assignment validation.
-2026-09-07 I-017 x — issue #17 — bounded museum texture loading/preload/eviction, conservative derivative choice, cleanup, retry placeholder, and culling primitive complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`, `node --check web/static/museum.js`, `node --check web/static/texture-loader.js`; Playwright browser smoke not executable because Chromium is not installed in the environment.
-2026-09-07 I-018 x — issue #18 — keyboard/pointer/touch museum controls, mobile buttons, accessible inspection dialog, canonical links, and WebGL fallback complete — Go gates plus Playwright desktop/mobile viewport smoke; Chromium headless fallback showed zero console errors.
-2026-09-07 I-019 x — issue #19 — validated draft/save, explicit publish, deterministic published scene API, and public published-snapshot isolation complete — `GOCACHE=/tmp/gallery-gocache go vet ./...`, `GOCACHE=/tmp/gallery-gocache go test ./...`; service tests cover draft isolation, validation failure, publish, retrieval, and deterministic scene version.
-2026-09-07 I-020 x — issue #20 — portable non-root Containerfile/Compose contract complete — Podman build and temporary `podman run` health/UID/volume smoke passed; `podman compose` and Docker Compose were not installed in the environment and remain unexecuted.
-2026-09-07 I-021 x — issue #21 — CI quality workflow and local format/vet/test/build/browser-module gates complete — local gates passed with writable temporary Go caches; workflow includes GitHub Actions Go cache, Docker build, and minimal read-only permissions.
-2026-09-07 I-022 x — issue #22 — security headers, immutable static caching, hidden-artwork checks, accessibility/fallback review, reduced-motion CSS, and browser route smoke complete — Go/JS gates plus Chromium smoke of home/gallery/timeline/museum; zero console errors observed.
-2026-09-07 I-023 x — issue #23 — stop-and-archive backup/restore scripts and operational guidance complete — temporary archive restore smoke preserved database and image files; docs cover health, logs, graceful stop, upgrade, ownership, migration compatibility, and reset boundaries.
-2026-09-07 I-024 x — issue #24 — fresh-install acceptance and v1 release gate complete — clean data-dir setup/login, representative artwork upload/edit/visibility and metadata filtering, canonical detail/media delivery, museum draft preview/publish/API, backup/restore, desktop/mobile browser smoke, `GOCACHE=/tmp/gallery-gocache GOMODCACHE=/tmp/gallery-modcache go test ./...`, `go vet ./...`, `go build`, JS syntax checks, `git diff --check`, and Podman non-root image smoke passed; local image `vm75/virtual-art-gallery:v1-local`; Docker Compose frontends unavailable and no remote release publication performed.
-2026-09-07 I-001 x — issue #1 — project-wide v1 acceptance gate closed after I-024 evidence; all implementation issues I-002 through I-024 are complete and the documented global criteria were reviewed.
-2026-09-07 I-025 x — versioned OCI metadata and tag/manual-only Docker Hub + GHCR publishing workflow complete — local Go tests/vet/build, linker-metadata startup smoke, workflow inspection, and `git diff --check`; the versioned Containerfile build was attempted but blocked by local Docker/Podman runtime permissions; remote registry publication requires configured Docker Hub secrets and a pushed release tag or manual dispatch.
-
-## Follow-up issues
-
-Add newly approved work here with its GitHub issue number, dependency, and reason. Do not add wishlist work merely because it was noticed while implementing another issue.
-
-| ID | GitHub | Status | Work item | Depends on | Reason |
-|---|---:|:---:|---|---|---|
+2026-09-07 REMEDIATION — review of main `1a281221...` reopened #1, #6, #13, #15, #16, #17, #18, #19, #21, #22, #24; created #25-#31; created branch `fix/v1-remediation`; replaced previous completion ledger with this remediation tracker.
