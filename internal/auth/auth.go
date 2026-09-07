@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -16,17 +17,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const sessionLifetime = 12 * time.Hour
+const (
+	sessionLifetime = 12 * time.Hour
+	failureWindow   = time.Minute
+	maxFailureKeys  = 1024
+)
 
 type Manager struct {
 	db             *sql.DB
 	SecureCookies  bool
 	mu             sync.Mutex
 	failedAttempts map[string][]time.Time
+	now            func() time.Time
 }
 
 func NewManager(db *sql.DB, secureCookies bool) *Manager {
-	return &Manager{db: db, SecureCookies: secureCookies, failedAttempts: make(map[string][]time.Time)}
+	return &Manager{db: db, SecureCookies: secureCookies, failedAttempts: make(map[string][]time.Time), now: time.Now}
 }
 
 func (m *Manager) NeedsSetup(ctx context.Context) (bool, error) {
@@ -61,6 +67,7 @@ func (m *Manager) Setup(ctx context.Context, username, password string) error {
 }
 
 func (m *Manager) Login(ctx context.Context, username, password, clientKey string) (string, string, error) {
+	clientKey = clientIdentity(clientKey)
 	if !m.allowAttempt(clientKey) {
 		return "", "", errors.New("login failed")
 	}
@@ -155,23 +162,75 @@ func digest(value string) []byte { sum := sha256.Sum256([]byte(value)); return s
 func (m *Manager) allowAttempt(key string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	now := time.Now()
+	now := m.now()
+	m.pruneFailures(now)
 	recent := m.failedAttempts[key][:0]
 	for _, when := range m.failedAttempts[key] {
-		if now.Sub(when) < time.Minute {
+		if now.Sub(when) < failureWindow {
 			recent = append(recent, when)
 		}
 	}
-	m.failedAttempts[key] = recent
+	if len(recent) == 0 {
+		delete(m.failedAttempts, key)
+	} else {
+		m.failedAttempts[key] = recent
+	}
 	return len(recent) < 5
 }
 func (m *Manager) recordFailure(key string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.failedAttempts[key] = append(m.failedAttempts[key], time.Now())
+	now := m.now()
+	m.pruneFailures(now)
+	if _, exists := m.failedAttempts[key]; !exists && len(m.failedAttempts) >= maxFailureKeys {
+		m.removeOldestFailureKey()
+	}
+	m.failedAttempts[key] = append(m.failedAttempts[key], now)
 }
 func (m *Manager) clearFailures(key string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.failedAttempts, key)
+}
+
+func clientIdentity(remoteAddr string) string {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	return remoteAddr
+}
+
+func (m *Manager) pruneFailures(now time.Time) {
+	for key, attempts := range m.failedAttempts {
+		recent := attempts[:0]
+		for _, when := range attempts {
+			if now.Sub(when) < failureWindow {
+				recent = append(recent, when)
+			}
+		}
+		if len(recent) == 0 {
+			delete(m.failedAttempts, key)
+		} else {
+			m.failedAttempts[key] = recent
+		}
+	}
+}
+
+func (m *Manager) removeOldestFailureKey() {
+	var oldestKey string
+	var oldest time.Time
+	for key, attempts := range m.failedAttempts {
+		if len(attempts) == 0 {
+			delete(m.failedAttempts, key)
+			continue
+		}
+		candidate := attempts[len(attempts)-1]
+		if oldestKey == "" || candidate.Before(oldest) {
+			oldestKey, oldest = key, candidate
+		}
+	}
+	if oldestKey != "" {
+		delete(m.failedAttempts, oldestKey)
+	}
 }

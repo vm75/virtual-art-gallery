@@ -37,7 +37,7 @@ SQLite + data directory
 
 The current bootstrap process is `cmd/gallery`: it uses `net/http` with standard-library routing, reads `GALLERY_LISTEN_ADDR` (default `:8080`) and `GALLERY_DATA_DIR` (default `./data`), opens `gallery.db` in that data directory, exposes `GET /healthz`, and shuts down on SIGINT/SIGTERM with a ten-second deadline. Feature routes are added incrementally behind this single process.
 
-The admin boundary currently supports first-use setup at `/admin/setup`, login at `/admin/login`, authenticated `/admin/`, and POST logout. Passwords use bcrypt; sessions store only SHA-256 token digests with a 12-hour expiry, and a separate CSRF token is required for logout. `GALLERY_SECURE_COOKIES=true` enables the Secure cookie flag for TLS deployments.
+The admin boundary currently supports first-use setup at `/admin/setup`, login at `/admin/login`, authenticated `/admin/`, and POST logout. Passwords use bcrypt; sessions store only SHA-256 token digests with a 12-hour expiry, and a separate CSRF token is required for logout. Login failures are throttled in-process by the direct peer IP (not forwarded headers), with expired entries removed and the key map bounded. `GALLERY_SECURE_COOKIES=true` enables the Secure cookie flag for TLS deployments.
 
 The current artwork admin UI uses `/admin/artworks/new` for multipart creation and `/admin/artworks/edit?slug=...` for metadata/visibility updates. Upload processing completes before image references are persisted; failed creates delete the draft record.
 

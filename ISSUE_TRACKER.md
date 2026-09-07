@@ -37,7 +37,7 @@ Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat
 |---:|---|---:|:---:|---|---|---|
 | 1 | R-031 | [#31](https://github.com/vm75/virtual-art-gallery/issues/31) | [x] | Update branch/documentation contract from rewrite to main + remediation flow | — | 6570a6c (rebased) |
 | 2 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | CI and repeatable quality gates: target `main`/PRs correctly | R-031 | see execution log |
-| 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [ ] | Fix single-admin login throttle identity and bounded cleanup | — | — |
+| 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [x] | Fix single-admin login throttle identity and bounded cleanup | — | see GitHub evidence |
 | 4 | R-026 | [#26](https://github.com/vm75/virtual-art-gallery/issues/26) | [ ] | Enforce SQLite foreign keys on every connection | — | — |
 | 5 | R-025 | [#25](https://github.com/vm75/virtual-art-gallery/issues/25) | [ ] | Version static assets or stop immutable caching stable URLs | — | — |
 | 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [ ] | Add artwork alt text editing and accessible image-link fallback | — | — |
@@ -82,3 +82,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 REMEDIATION — review of main `1a281221...` reopened #1, #6, #13, #15, #16, #17, #18, #19, #21, #22, #24; created #25-#31; created branch `fix/v1-remediation`; replaced previous completion ledger with this remediation tracker.
 2026-09-07 R-031 [x] — issue #31 — 6570a6c (rebased) — `git diff --check`; README/AGENTS/IMPLEMENTATION_PLAN/DOCKERHUB and tracker now document main + remediation flow.
 2026-09-07 I-021 [x] — issue #21 — recorded in GitHub on commit — format, vet, tests, production build, all browser module syntax checks, and `git diff --check` passed; CI is scoped to main push/PR.
+2026-09-07 I-006 [x] — issue #6 — recorded in GitHub on commit — direct peer-IP buckets, expiry cleanup, and bounded key map tested; format, vet, and full Go tests passed.
