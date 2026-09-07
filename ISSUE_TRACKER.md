@@ -43,7 +43,7 @@ Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat
 | 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [x] | Add artwork alt text editing and accessible image-link fallback | — | see GitHub evidence |
 | 7 | R-028 | [#28](https://github.com/vm75/virtual-art-gallery/issues/28) | [x] | Make artwork slugs robust for non-ASCII titles | — | see GitHub evidence |
 | 8 | R-029 | [#29](https://github.com/vm75/virtual-art-gallery/issues/29) | [x] | Improve derivative resizing quality and pixel bounds | — | see GitHub evidence |
-| 9 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [ ] | Fix deterministic room geometry/capacity and placement-location collisions | — | — |
+| 9 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [x] | Fix deterministic room geometry/capacity and placement-location collisions | — | see GitHub evidence |
 | 10 | I-016 | [#16](https://github.com/vm75/virtual-art-gallery/issues/16) | [ ] | Emit/validate renderer-ready artwork transforms and unique placements | I-015 | — |
 | 11 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [ ] | Render actual generated 3D rooms/walls/artworks with spatial camera | I-015, I-016, R-029 | — |
 | 12 | I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [ ] | Implement real room/spatial-aware texture loading/culling lifecycle | I-013, I-016, R-029 | — |
@@ -88,3 +88,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 R-027 [x] — issue #27 — recorded in GitHub on commit — bounded admin alt text persists/escapes and Gallery empty-alt links receive artwork-name fallback; admin browser accessibility smoke plus format, vet, and full Go tests passed.
 2026-09-07 R-028 [x] — issue #28 — recorded in GitHub on commit — ASCII slugs remain stable; accented, non-ASCII, punctuation, collision, and edit stability are covered; format, vet, and full Go tests passed.
 2026-09-07 R-029 [x] — issue #29 — recorded in GitHub on commit — bilinear width/height-bounded derivatives cover extreme portraits/landscapes, no-upscale small images, aspect bounds, and interpolation; format, vet, and full Go tests passed.
+2026-09-07 I-015 [x] — issue #15 — recorded in GitHub on commit — deterministic world geometry, exact capacity/physical slots, doorway safety, reachability, and distributions are covered; format, vet, and full Go tests passed.

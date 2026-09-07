@@ -145,7 +145,7 @@ The generated museum is deterministic for a given published rule-set version/see
 
 The baseline `/museum/` page loads only `museum.js`. It fetches visible artwork JSON, paints the first museum derivative into a small WebGL texture, and lists canonical artwork links. Browsers without WebGL receive an explicit Gallery Lite fallback. This baseline uses browser WebGL directly; no legacy build pipeline or ARTIC data source is included.
 
-The renderer-independent layout generator sorts group IDs and artwork slugs, creates one connected room per group plus an optional unclassified room, and emits stable room/connection/placement IDs from the seed and input. Each room reserves one doorway-aware set of three wall faces, with up to ten four-slot segments; excess work is reported in `errors` rather than dropped.
+The renderer-independent layout generator sorts group IDs and artwork slugs, creates one connected linear room per group plus an optional unclassified room, and emits stable IDs and world-space room centers, doorways, wall normals, and placement positions. Each room has two usable artwork walls with four three-metre slots per wall segment; doorways occupy the east/west connection faces, so capacity exactly matches the emitted slots. Rooms scale to ten segments (80 works); excess work is reported in `errors` rather than dropped.
 
 Placement sizing uses a 2.4-unit target height and a 2.8-unit maximum width, preserving recorded image aspect ratio. `ValidatePlacements` rejects unknown rooms, duplicate artwork assignments, missing assignments, and references outside the evaluated artwork set before a scene is rendered or published.
 
