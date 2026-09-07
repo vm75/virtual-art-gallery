@@ -35,7 +35,7 @@ Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat
 
 | Order | ID | GitHub | Status | Work item | Depends on | Commit |
 |---:|---|---:|:---:|---|---|---|
-| 1 | R-031 | [#31](https://github.com/vm75/virtual-art-gallery/issues/31) | [ ] | Update branch/documentation contract from rewrite to main + remediation flow | — | — |
+| 1 | R-031 | [#31](https://github.com/vm75/virtual-art-gallery/issues/31) | [x] | Update branch/documentation contract from rewrite to main + remediation flow | — | 6570a6c (rebased) |
 | 2 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [ ] | CI and repeatable quality gates: target `main`/PRs correctly | R-031 | — |
 | 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [ ] | Fix single-admin login throttle identity and bounded cleanup | — | — |
 | 4 | R-026 | [#26](https://github.com/vm75/virtual-art-gallery/issues/26) | [ ] | Enforce SQLite foreign keys on every connection | — | — |
@@ -73,7 +73,6 @@ At minimum, the final acceptance run must demonstrate:
 - documentation audit for `README.md`, `ARCHITECTURE.md`, `AGENTS.md`, `DOCKERHUB.md`, `IMPLEMENTATION_PLAN.md`, and this tracker.
 
 ## Execution log
-
 Append entries; do not erase prior remediation history.
 
 ```text
@@ -81,3 +80,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 ```
 
 2026-09-07 REMEDIATION — review of main `1a281221...` reopened #1, #6, #13, #15, #16, #17, #18, #19, #21, #22, #24; created #25-#31; created branch `fix/v1-remediation`; replaced previous completion ledger with this remediation tracker.
+2026-09-07 R-031 [x] — issue #31 — 6570a6c (rebased) — `git diff --check`; README/AGENTS/IMPLEMENTATION_PLAN/DOCKERHUB and tracker now document main + remediation flow.

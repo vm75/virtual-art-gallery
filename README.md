@@ -1,6 +1,6 @@
-# Virtual Art Gallery — Rewrite
+# Virtual Art Gallery
 
-This branch is a clean rewrite of `vm75/virtual-art-gallery` into a self-hosted art platform with one Go backend, three public gallery experiences, and one private admin interface.
+This repository provides a self-hosted art platform with one Go backend, three public gallery experiences, and one private admin interface.
 
 The original project is preserved on the `legacy` branch and should be treated as a reference implementation for the WebGL/REGL museum renderer, camera/navigation behavior, procedural geometry ideas, and texture lifecycle. Do not merge the legacy tree wholesale into this branch.
 
@@ -45,12 +45,13 @@ Every change that alters architecture, operation, configuration, deployment, rou
 
 ## Branches
 
-- `legacy` — snapshot of the pre-rewrite application.
-- `rewrite` — clean rewrite and active implementation branch.
+- `main` — canonical product and default branch.
+- `legacy` — snapshot of the pre-rewrite application; reference-only.
+- `fix/v1-remediation` — temporary corrective branch for the v1 remediation review; it will merge into `main` after the release gates pass.
 
 ## Local development
 
-The rewrite is a single Go process. Go 1.26 or newer is required.
+The application is a single Go process. Go 1.26 or newer is required.
 
 ```sh
 go run ./cmd/gallery

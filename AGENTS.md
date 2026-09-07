@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file defines the operating contract for autonomous coding agents working on the rewrite branch.
+This file defines the operating contract for autonomous coding agents. `main` is the canonical product branch; the current v1 corrective cycle is developed on `fix/v1-remediation` and merged to `main` only after its release gates pass.
 
 ## Read first
 
@@ -14,7 +14,7 @@ Before changing code, read:
 
 GitHub Issues are enabled for this repository. The linked GitHub issue is authoritative for detailed scope and acceptance criteria; `ISSUE_TRACKER.md` is the compact execution ledger.
 
-The `legacy` branch is reference material only. Do not merge it wholesale. Copy/adapt only code that is justified by the current issue and compatible with the rewrite architecture/licensing.
+The `legacy` branch is reference material only. Do not merge it wholesale. Copy/adapt only code that is justified by the current issue and compatible with the current architecture/licensing.
 
 ## Prime directives
 
@@ -28,7 +28,7 @@ The `legacy` branch is reference material only. Do not merge it wholesale. Copy/
 
 ## Issue execution protocol
 
-Work one issue/tracker item at a time unless it explicitly groups inseparable tasks.
+Work one issue/tracker item at a time unless it explicitly groups inseparable tasks. Each issue that changes repository content needs one distinct issue-scoped commit; its tests and documentation/tracker updates belong in that same commit.
 
 1. Confirm all declared dependencies are complete.
 2. Mark the item `in progress` in `ISSUE_TRACKER.md` with a short note/date.

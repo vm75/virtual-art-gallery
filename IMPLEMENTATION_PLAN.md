@@ -67,7 +67,7 @@ V1 is accepted only when all of the following are true:
 
 ### Phase 0 — Planning and guardrails
 
-Establish clean rewrite branch, preserve legacy branch, architecture, agent workflow, issue tracker, and detailed GitHub backlog. No product code.
+Establish the canonical `main` product branch, preserve the `legacy` reference branch, and define architecture, agent workflow, issue tracker, and detailed GitHub backlog. No product code.
 
 ### Phase 1 — Backend foundation
 
@@ -128,7 +128,7 @@ Cross-cutting accessibility, security, performance, backup/restore documentation
 - No SPA framework unless an approved issue records why native/server-rendered UI is insufficient.
 - No arbitrary museum rule scripts; rules are validated data.
 - Museum semantic layout code must be renderer-independent and deterministic.
-- `legacy` is a source/reference branch, not the base tree for the rewrite.
+- `legacy` is a source/reference branch, never the base tree for product work. `main` is canonical; `fix/v1-remediation` is a temporary corrective branch until it merges to `main`.
 
 ## Documentation completion rule
 
