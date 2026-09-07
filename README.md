@@ -15,7 +15,7 @@ The application serves:
 - `/artwork/{slug}` — canonical accessible artwork detail page.
 - `/admin/` — private admin UI. It must never be linked from public navigation or the home page.
 
-Each artwork has, at minimum: name, date, tags, surface, medium, source image, derived display images, and visibility state.
+Each artwork has, at minimum: name, date, tags, surface, medium, accessible alt text, source image, derived display images, and visibility state.
 
 The admin can upload images, edit artwork metadata, manage controlled surface/medium values and tags, define museum grouping/layout rules, preview a draft museum, and publish a museum configuration. There is exactly one admin account. Username and password are created on first use; there is no user-management feature.
 

@@ -25,7 +25,7 @@ func TestGalleryUsesDerivedLazyImagesAndFilters(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	h.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/gallery/?tag=blue", nil))
 	body := recorder.Body.String()
-	if recorder.Code != http.StatusOK || !strings.Contains(body, `loading="lazy"`) || !strings.Contains(body, `data-lightbox`) || !strings.Contains(body, `/artwork/visible`) || !strings.Contains(body, `name="tag"`) {
+	if recorder.Code != http.StatusOK || !strings.Contains(body, `loading="lazy"`) || !strings.Contains(body, `data-lightbox`) || !strings.Contains(body, `/artwork/visible`) || !strings.Contains(body, `name="tag"`) || !strings.Contains(body, `aria-label="View artwork: Visible"`) {
 		t.Fatalf("unexpected gallery: %d %s", recorder.Code, body)
 	}
 }

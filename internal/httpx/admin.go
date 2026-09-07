@@ -176,7 +176,7 @@ func (h AdminHandler) artworks(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/", 303)
 		return
 	}
-	h.renderArtworkForm(w, csrf, artwork.Input{Name: item.Name, Date: item.Date, Tags: item.Tags, Surface: item.Surface, Medium: item.Medium, Visible: item.Visible}, "", false, slug)
+	h.renderArtworkForm(w, csrf, artwork.Input{Name: item.Name, Date: item.Date, Tags: item.Tags, Surface: item.Surface, Medium: item.Medium, AltText: item.AltText, Visible: item.Visible}, "", false, slug)
 }
 func (h AdminHandler) createArtwork(w http.ResponseWriter, r *http.Request) {
 	if !h.Auth.ValidateCSRF(r.Context(), r) {
@@ -214,7 +214,7 @@ func (h AdminHandler) createArtwork(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/", 303)
 }
 func inputFromRequest(r *http.Request) artwork.Input {
-	return artwork.Input{Name: r.FormValue("name"), Date: r.FormValue("date"), Tags: strings.Split(r.FormValue("tags"), ","), Surface: r.FormValue("surface"), Medium: r.FormValue("medium"), Visible: r.FormValue("visible") == "on"}
+	return artwork.Input{Name: r.FormValue("name"), Date: r.FormValue("date"), Tags: strings.Split(r.FormValue("tags"), ","), Surface: r.FormValue("surface"), Medium: r.FormValue("medium"), AltText: r.FormValue("alt_text"), Visible: r.FormValue("visible") == "on"}
 }
 func csrfFrom(r *http.Request) string {
 	if c, err := r.Cookie("gallery_csrf"); err == nil {
@@ -251,7 +251,7 @@ func renderArtworkFormHTML(w http.ResponseWriter, csrf string, in artwork.Input,
 		options += `<option value="` + template.HTMLEscapeString(value) + `">`
 	}
 	options += `</datalist>`
-	html := `<!doctype html><title>` + title + `</title><main><a href="/admin/">Admin</a><h1>` + title + `</h1>` + e + `<form method="post" action="` + action + `"` + enctype + `><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><label>Name <input name="name" required value="` + template.HTMLEscapeString(in.Name) + `"></label><label>Date <input type="date" name="date" required value="` + template.HTMLEscapeString(in.Date) + `"></label><label>Tags <input name="tags" value="` + template.HTMLEscapeString(strings.Join(in.Tags, ", ")) + `" placeholder="comma separated"></label><label>Surface <input name="surface" list="surfaces" required value="` + template.HTMLEscapeString(in.Surface) + `"></label><label>Medium <input name="medium" list="mediums" required value="` + template.HTMLEscapeString(in.Medium) + `"></label>` + image + `<label>Visible <input type="checkbox" name="visible"` + checked + `></label><button>Save artwork</button></form>` + options + `</main>`
+	html := `<!doctype html><title>` + title + `</title><main><a href="/admin/">Admin</a><h1>` + title + `</h1>` + e + `<form method="post" action="` + action + `"` + enctype + `><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><label>Name <input name="name" required value="` + template.HTMLEscapeString(in.Name) + `"></label><label>Date <input type="date" name="date" required value="` + template.HTMLEscapeString(in.Date) + `"></label><label>Tags <input name="tags" value="` + template.HTMLEscapeString(strings.Join(in.Tags, ", ")) + `" placeholder="comma separated"></label><label>Surface <input name="surface" list="surfaces" required value="` + template.HTMLEscapeString(in.Surface) + `"></label><label>Medium <input name="medium" list="mediums" required value="` + template.HTMLEscapeString(in.Medium) + `"></label><label>Alt text <textarea name="alt_text" maxlength="1000">` + template.HTMLEscapeString(in.AltText) + `</textarea></label>` + image + `<label>Visible <input type="checkbox" name="visible"` + checked + `></label><button>Save artwork</button></form>` + options + `</main>`
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))
 }

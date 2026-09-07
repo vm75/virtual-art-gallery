@@ -80,7 +80,7 @@ Use SQLite in the configured data directory through the pure-Go `modernc.org/sql
 
 Core records:
 
-- `artworks`: id, slug, name, date, surface, medium, description/alt text if supported, visibility, image metadata, timestamps.
+- `artworks`: id, slug, name, date, surface, medium, editable bounded alt text, visibility, image metadata, timestamps.
 - `tags` and artwork-tag join table.
 - controlled `surfaces` and `mediums`, unless a simpler normalized-string approach meets the issue acceptance criteria.
 - `admin`: exactly one credential record.

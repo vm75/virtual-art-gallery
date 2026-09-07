@@ -20,7 +20,12 @@ func (p GalleryPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, item := range items {
 		name := template.HTMLEscapeString(item.Name)
 		slug := template.URLQueryEscaper(item.Slug)
-		cards.WriteString(`<article class="gallery-card"><a class="gallery-image" href="/artwork/` + slug + `" data-lightbox data-name="` + name + `"><img src="` + template.HTMLEscapeString(item.Image.Thumbnail) + `" srcset="` + template.HTMLEscapeString(item.Image.Thumbnail) + ` 480w, ` + template.HTMLEscapeString(item.Image.Medium) + ` 1200w" sizes="(min-width: 900px) 30vw, 90vw" alt="` + template.HTMLEscapeString(item.AltText) + `" loading="lazy"></a><div class="gallery-card-copy"><h2><a href="/artwork/` + slug + `">` + name + `</a></h2><p>` + template.HTMLEscapeString(item.Date) + `</p></div></article>`)
+		altText := strings.TrimSpace(item.AltText)
+		fallback := ""
+		if altText == "" {
+			fallback = ` aria-label="View artwork: ` + name + `"`
+		}
+		cards.WriteString(`<article class="gallery-card"><a class="gallery-image" href="/artwork/` + slug + `" data-lightbox data-name="` + name + `"` + fallback + `><img src="` + template.HTMLEscapeString(item.Image.Thumbnail) + `" srcset="` + template.HTMLEscapeString(item.Image.Thumbnail) + ` 480w, ` + template.HTMLEscapeString(item.Image.Medium) + ` 1200w" sizes="(min-width: 900px) 30vw, 90vw" alt="` + template.HTMLEscapeString(altText) + `" loading="lazy"></a><div class="gallery-card-copy"><h2><a href="/artwork/` + slug + `">` + name + `</a></h2><p>` + template.HTMLEscapeString(item.Date) + `</p></div></article>`)
 	}
 	if len(items) == 0 {
 		cards.WriteString(`<p class="empty-state">No visible artworks match these filters.</p>`)

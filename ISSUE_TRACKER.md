@@ -40,7 +40,7 @@ Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat
 | 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [x] | Fix single-admin login throttle identity and bounded cleanup | — | see GitHub evidence |
 | 4 | R-026 | [#26](https://github.com/vm75/virtual-art-gallery/issues/26) | [x] | Enforce SQLite foreign keys on every connection | — | see GitHub evidence |
 | 5 | R-025 | [#25](https://github.com/vm75/virtual-art-gallery/issues/25) | [x] | Version static assets or stop immutable caching stable URLs | — | see GitHub evidence |
-| 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [ ] | Add artwork alt text editing and accessible image-link fallback | — | — |
+| 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [x] | Add artwork alt text editing and accessible image-link fallback | — | see GitHub evidence |
 | 7 | R-028 | [#28](https://github.com/vm75/virtual-art-gallery/issues/28) | [ ] | Make artwork slugs robust for non-ASCII titles | — | — |
 | 8 | R-029 | [#29](https://github.com/vm75/virtual-art-gallery/issues/29) | [ ] | Improve derivative resizing quality and pixel bounds | — | — |
 | 9 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [ ] | Fix deterministic room geometry/capacity and placement-location collisions | — | — |
@@ -85,3 +85,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 I-006 [x] — issue #6 — recorded in GitHub on commit — direct peer-IP buckets, expiry cleanup, and bounded key map tested; format, vet, and full Go tests passed.
 2026-09-07 R-026 [x] — issue #26 — recorded in GitHub on commit — two live connections validate foreign keys/busy timeout and cross-connection cascade; format, vet, and full Go tests passed.
 2026-09-07 R-025 [x] — issue #25 — recorded in GitHub on commit — static URLs require revalidation while immutable media remains unchanged; HTTP header test and full Go gates passed.
+2026-09-07 R-027 [x] — issue #27 — recorded in GitHub on commit — bounded admin alt text persists/escapes and Gallery empty-alt links receive artwork-name fallback; admin browser accessibility smoke plus format, vet, and full Go tests passed.

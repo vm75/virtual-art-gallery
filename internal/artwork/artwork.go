@@ -63,6 +63,9 @@ func ValidateInput(in Input) (Input, error) {
 	if in.Surface == "" || len(in.Surface) > 120 || in.Medium == "" || len(in.Medium) > 120 {
 		return Input{}, fmt.Errorf("surface and medium are required and must be at most 120 characters")
 	}
+	if len(in.AltText) > 1000 {
+		return Input{}, fmt.Errorf("alt text must be at most 1000 characters")
+	}
 	seen := make(map[string]bool, len(in.Tags))
 	rawTags := in.Tags
 	in.Tags = nil
