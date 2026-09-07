@@ -1,5 +1,6 @@
 // Page wiring stays separate from the renderer, camera, and texture modules.
 import { MuseumCamera } from './museum-camera.js';
+import { pickArtwork } from './museum-picking.js';
 import { MuseumRenderer } from './museum-renderer.js';
 import { MuseumTextureLifecycle } from './texture-loader.js';
 
@@ -21,6 +22,7 @@ function detailsDialog() {
 }
 
 function installControls(camera, plan, redraw, inspect) {
+  canvas.style.touchAction = 'none';
   const status = document.createElement('p'); status.className = 'museum-status'; status.setAttribute('aria-live', 'polite'); canvas.after(status);
   const move = (direction) => { const moved = camera.move(direction, .65, plan); status.textContent = moved ? `Position ${camera.position.x.toFixed(1)}, ${camera.position.z.toFixed(1)}` : 'A wall blocks that direction.'; redraw(); };
   const keys = { ArrowUp: 'forward', w: 'forward', ArrowDown: 'back', s: 'back', ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
@@ -29,7 +31,7 @@ function installControls(camera, plan, redraw, inspect) {
   let last;
   canvas.addEventListener('pointerdown', (event) => { last = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
   canvas.addEventListener('pointermove', (event) => { if (!last || !canvas.hasPointerCapture(event.pointerId)) return; const dx = event.clientX - last.x, dy = event.clientY - last.y; last.moved ||= Math.hypot(dx, dy) > 6; camera.look(dx, dy); last.x = event.clientX; last.y = event.clientY; redraw(); });
-  canvas.addEventListener('pointerup', (event) => { const tap = last && !last.moved; last = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (tap) inspect(); });
+  canvas.addEventListener('pointerup', (event) => { const tap = last && !last.moved; last = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (tap) inspect(event.clientX, event.clientY); });
   window.addEventListener('resize', redraw); window.addEventListener('orientationchange', redraw);
 }
 
@@ -58,7 +60,14 @@ async function start() {
     // Start looking toward that wall so the first artwork is visible on entry.
     camera.yaw = Math.PI;
     renderer.setScene(plan); fallback.hidden = true; redraw();
-    const showInfo = detailsDialog(); installControls(camera, plan, redraw, () => { const placement = renderer.nearestArtwork(camera), item = placement && bySlug.get(placement.artwork_slug); if (item) showInfo(item); }); artworkList(plan.placements || [], bySlug, showInfo);
+    const showInfo = detailsDialog();
+    installControls(camera, plan, redraw, (clientX, clientY) => {
+      const rect = canvas.getBoundingClientRect();
+      const placement = pickArtwork(plan.placements || [], camera, { x: clientX - rect.left, y: clientY - rect.top }, { width: rect.width, height: rect.height });
+      const item = placement && bySlug.get(placement.artwork_slug);
+      if (item) showInfo(item);
+    });
+    artworkList(plan.placements || [], bySlug, showInfo);
     textures = new MuseumTextureLifecycle({ plan, artworks: bySlug, renderer, redraw }); textures.update(camera);
     window.addEventListener('pagehide', () => { textures.dispose(); renderer.dispose(); }, { once: true });
   } catch {

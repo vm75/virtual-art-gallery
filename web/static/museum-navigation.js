@@ -1,6 +1,7 @@
 // Pure spatial queries for the generated room/corridor plan. Input handling
 // stays in museum.js and the camera delegates movement here.
 const cameraRadius = .35;
+const maxCollisionStep = .05;
 
 function inRange(value, lower, upper) { return value >= lower && value <= upper; }
 
@@ -33,6 +34,12 @@ export function isTraversable(plan, point, radius = cameraRadius) {
 }
 
 export function movePoint(plan, point, delta, distance = .65, radius = cameraRadius) {
-  const next = { x: point.x + delta.x * distance, y: point.y, z: point.z + delta.z * distance };
-  return isTraversable(plan, next, radius) ? next : { ...point };
+  const pathLength = Math.hypot(delta.x, delta.z) * Math.abs(distance);
+  const steps = Math.max(1, Math.ceil(pathLength / maxCollisionStep));
+  for (let step = 1; step <= steps; step++) {
+    const fraction = step / steps;
+    const next = { x: point.x + delta.x * distance * fraction, y: point.y, z: point.z + delta.z * distance * fraction };
+    if (!isTraversable(plan, next, radius)) return { ...point };
+  }
+  return { x: point.x + delta.x * distance, y: point.y, z: point.z + delta.z * distance };
 }
