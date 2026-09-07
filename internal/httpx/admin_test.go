@@ -89,3 +89,12 @@ func TestArtworkFormEscapesAndPreservesAltText(t *testing.T) {
 		t.Fatalf("alt text form field missing or unescaped: %s", body)
 	}
 }
+
+func TestMuseumRuleEditorUsesStructuredControls(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	renderMuseumAdmin(recorder, "csrf", `{"version":1,"seed":1,"groups":[],"rules":[]}`, "", "Preview: 0 unclassified works")
+	body := recorder.Body.String()
+	if !strings.Contains(body, "/static/museum-admin.js") || !strings.Contains(body, `id="museum-rule-editor"`) || strings.Contains(body, "Rules JSON <textarea") {
+		t.Fatalf("unexpected rule editor: %s", body)
+	}
+}
