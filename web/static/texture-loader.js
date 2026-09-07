@@ -40,17 +40,17 @@ export function textureTargets(plan, camera, maxEntries = 6) {
 }
 
 export class MuseumTextureLifecycle {
-  constructor({ plan, artworks, renderer, redraw, limit = 6, capability = textureCapability() }) { this.plan = plan; this.artworks = artworks; this.renderer = renderer; this.redraw = redraw; this.loader = new TextureLoader(limit); this.limit = limit; this.capability = capability; this.active = new Set(); this.pending = new Set(); }
+  constructor({ plan, artworks, renderer, redraw, limit = 6, capability = textureCapability() }) { this.plan = plan; this.artworks = artworks; this.renderer = renderer; this.redraw = redraw; this.loader = new TextureLoader(limit); this.limit = limit; this.capability = capability; this.active = new Set(); this.pending = new Set(); this.resident = new Set(); }
   update(camera) {
     const next = new Set(textureTargets(this.plan, camera, this.limit));
-    for (const key of this.loader.unloadExcept(next)) this.renderer.removeArtworkImage(key);
-    for (const key of this.active) if (!next.has(key)) this.renderer.removeArtworkImage(key);
+    this.loader.unloadExcept(next);
+    for (const key of this.resident) if (!next.has(key)) { this.renderer.removeArtworkImage(key); this.resident.delete(key); }
     this.active = next;
     for (const key of next) {
       const artwork = this.artworks.get(key), source = artwork && museumSource(artwork, this.capability); if (!source) continue;
-      if (this.pending.has(key)) continue;
-      this.pending.add(key); this.loader.load(key, source).then((image) => { if (this.active.has(key)) { this.renderer.setArtworkImage(key, image); this.redraw?.(); } }).catch(() => {}).finally(() => this.pending.delete(key));
+      if (this.resident.has(key) || this.pending.has(key)) continue;
+      this.pending.add(key); this.loader.load(key, source).then((image) => { if (this.active.has(key)) { this.renderer.setArtworkImage(key, image); this.resident.add(key); this.redraw?.(); } }).catch(() => {}).finally(() => this.pending.delete(key));
     }
   }
-  dispose() { for (const key of this.loader.clear()) this.renderer.removeArtworkImage(key); this.active.clear(); this.pending.clear(); }
+  dispose() { this.loader.clear(); for (const key of this.resident) this.renderer.removeArtworkImage(key); this.resident.clear(); this.active.clear(); this.pending.clear(); }
 }
