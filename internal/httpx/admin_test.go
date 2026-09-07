@@ -82,6 +82,43 @@ func TestAdminArtworkCreateEditAndProtectedAccess(t *testing.T) {
 	}
 }
 
+func TestAdminArtworkRejectsOversizedRequestBeforeMultipartProcessing(t *testing.T) {
+	db, err := store.Open(context.Background(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	manager := auth.NewManager(db.DB(), false)
+	if err := manager.Setup(context.Background(), "admin", "correct horse battery staple"); err != nil {
+		t.Fatal(err)
+	}
+	session, csrf, err := manager.Login(context.Background(), "admin", "correct horse battery staple", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := AdminHandler{Auth: manager, Artworks: artwork.NewRepository(db.DB()), Images: images.Pipeline{Root: t.TempDir()}}
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	_ = writer.WriteField("csrf_token", csrf)
+	file, _ := writer.CreateFormFile("image", "oversized.png")
+	_, _ = file.Write(bytes.Repeat([]byte("x"), maxArtworkRequestBytes+1))
+	_ = writer.Close()
+	req := httptest.NewRequest(http.MethodPost, "/admin/artworks/new", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-CSRF-Token", csrf)
+	req.AddCookie(&http.Cookie{Name: "gallery_session", Value: session})
+	req.AddCookie(&http.Cookie{Name: "gallery_csrf", Value: csrf})
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, req)
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized request status = %d", response.Code)
+	}
+	var count int
+	if err := db.DB().QueryRow(`SELECT COUNT(*) FROM artworks`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("artwork created for oversized request: count=%d err=%v", count, err)
+	}
+}
+
 func TestArtworkFormEscapesAndPreservesAltText(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	renderArtworkFormHTML(recorder, "csrf", artwork.Input{AltText: `A <work> & "quote"`}, "", true, "", nil, nil)

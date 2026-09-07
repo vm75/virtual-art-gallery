@@ -21,6 +21,7 @@ import (
 const (
 	DefaultMaxUpload = 20 << 20
 	MaxDimension     = 16000
+	MaxDecodedPixels = 40_000_000
 )
 
 type derivativeSize struct{ Width, Height int }
@@ -62,11 +63,8 @@ func (p Pipeline) Process(input io.Reader, artworkID int64) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("decode image: %w", err)
 	}
-	if config.Width < 1 || config.Height < 1 || config.Width > MaxDimension || config.Height > MaxDimension {
-		return Result{}, fmt.Errorf("image dimensions are outside supported limits")
-	}
-	if format != "jpeg" && format != "png" && format != "gif" {
-		return Result{}, fmt.Errorf("unsupported image format %q", format)
+	if err := validateConfig(config, format); err != nil {
+		return Result{}, err
 	}
 	decoded, err := decode(data)
 	if err != nil {
@@ -115,6 +113,19 @@ func (p Pipeline) Process(input io.Reader, artworkID int64) (Result, error) {
 	}
 	published = true
 	return Result{Original: filepath.Join("images", filepath.Base(dir), "original"+ext), Thumbnail: paths["thumbnail"], Medium: paths["medium"], Museum: paths["museum"], Large: paths["large"], Width: config.Width, Height: config.Height}, nil
+}
+
+func validateConfig(config image.Config, format string) error {
+	if config.Width < 1 || config.Height < 1 || config.Width > MaxDimension || config.Height > MaxDimension {
+		return fmt.Errorf("image dimensions are outside supported limits")
+	}
+	if int64(config.Width)*int64(config.Height) > MaxDecodedPixels {
+		return fmt.Errorf("image exceeds %d decoded pixel limit", MaxDecodedPixels)
+	}
+	if format != "jpeg" && format != "png" && format != "gif" {
+		return fmt.Errorf("unsupported image format %q", format)
+	}
+	return nil
 }
 
 func decode(data []byte) (image.Image, error) {

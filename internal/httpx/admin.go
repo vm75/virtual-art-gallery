@@ -3,6 +3,7 @@ package httpx
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/vm75/virtual-art-gallery/internal/artwork"
 	"github.com/vm75/virtual-art-gallery/internal/auth"
 	"github.com/vm75/virtual-art-gallery/internal/images"
@@ -19,6 +20,8 @@ type AdminHandler struct {
 	Images   images.Pipeline
 	Museum   *museum.Service
 }
+
+const maxArtworkRequestBytes = images.DefaultMaxUpload + (1 << 20)
 
 func (h AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/admin/logout" && r.Method == http.MethodPost {
@@ -222,9 +225,19 @@ func (h AdminHandler) createArtwork(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", 403)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxArtworkRequestBytes)
 	if err := r.ParseMultipartForm(20 << 20); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
 		h.renderArtworkForm(w, csrfFrom(r), inputFromRequest(r), "Upload is too large or malformed", true, "")
 		return
+	}
+	if r.MultipartForm != nil {
+		defer r.MultipartForm.RemoveAll()
 	}
 	in := inputFromRequest(r)
 	item, err := h.Artworks.Create(r.Context(), in)

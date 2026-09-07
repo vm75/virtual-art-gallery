@@ -49,6 +49,15 @@ func TestProcessRejectsInvalidAndOversize(t *testing.T) {
 	}
 }
 
+func TestValidateConfigRejectsExcessiveDecodedPixels(t *testing.T) {
+	if err := validateConfig(image.Config{Width: 8000, Height: 6000}, "png"); err == nil {
+		t.Fatal("excessive decoded pixel count accepted")
+	}
+	if err := validateConfig(image.Config{Width: 8000, Height: 5000}, "png"); err != nil {
+		t.Fatalf("pixel boundary rejected: %v", err)
+	}
+}
+
 func TestProcessBoundsPortraitLandscapeAndSmallImages(t *testing.T) {
 	for _, test := range []struct {
 		name          string
