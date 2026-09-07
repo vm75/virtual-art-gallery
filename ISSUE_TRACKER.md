@@ -1,28 +1,27 @@
-# V1 Remediation Tracker
+# V1 Release Hardening Tracker
 
-This file replaces the original implementation-completion ledger after an independent review of `main` found acceptance-blocking gaps. Historical completion claims from the previous tracker are intentionally not carried forward as current status.
+This tracker is the active execution ledger after the 2026-09-07 independent second review of `fix/v1-remediation`. The previous remediation tracker and its completion claims remain available in Git history, but they are not current release status.
 
 ## Branch contract
 
-- `main` — canonical/default product branch.
+- `main` — canonical/default product branch and merge target.
 - `legacy` — pre-rewrite reference implementation only; never merge wholesale.
-- `rewrite` — deleted. Historical issue text mentioning it is superseded by current issue comments and this tracker.
-- `fix/v1-remediation` — active branch for all work in this tracker. Merge to `main` only after the release gates pass.
+- `rewrite` — deleted and fully superseded by `main`. Do not target it or instruct work on it.
+- `fix/v1-remediation` — historical remediation branch; no new fixes land there.
+- `fix/v1-release-hardening` — active branch for every issue in this tracker. It was created from the reviewed `fix/v1-remediation` head so prior remediation work is retained while new work moves to a clean branch.
 
-Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat: complete virtual art gallery v1 rewrite`).
+## Execution rules
 
-## Agent execution rules
-
-1. Read `AGENTS.md`, `README.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_PLAN.md`, this tracker, and the full linked GitHub issue before changing code.
-2. Work only on `fix/v1-remediation` for this corrective cycle.
-3. Select the next open item whose dependencies are complete. Parallel work is allowed only when files and architectural boundaries do not conflict.
-4. Implement one issue at a time. **Each issue that changes repository content must have its own distinct issue-scoped commit.** Do not combine unrelated tracker items in one commit.
-5. Commit messages should identify the issue, for example `fix(#26): enforce sqlite foreign keys per connection`.
-6. Run issue-specific tests plus applicable global quality gates before marking complete.
-7. Update affected docs/tests in the same issue commit. Do not defer documentation to a later bulk cleanup except where #31 explicitly owns the branch/workflow transition.
-8. Record the commit SHA and validation evidence here and in the GitHub issue before closing it.
-9. Do not mark an issue complete merely because code exists; every acceptance criterion must be demonstrated.
-10. Keep KISS and YAGNI. If a required fix reveals genuinely separate work, create a focused GitHub issue and add it here before implementing it.
+1. Read the full GitHub issue before changing code.
+2. Work only on `fix/v1-release-hardening` for this cycle.
+3. Implement one issue at a time.
+4. Every repository-changing issue gets exactly one distinct issue-scoped commit. Do not combine unrelated fixes.
+5. Commit messages must identify the issue, e.g. `fix(#18): constrain museum navigation`.
+6. Include issue-specific tests and update directly affected docs in the same issue commit.
+7. Run applicable global gates before closing an issue: formatting, `go vet ./...`, `go test ./...`, production build, browser-module checks, and any issue-specific browser/container validation.
+8. Record commit SHA and validation evidence in the GitHub issue and this tracker before marking complete.
+9. If work reveals a separate defect, create a focused issue and add it here before implementing it.
+10. Keep KISS/YAGNI. Release-gate issues (#22, #24, #1) do not absorb unrelated implementation work.
 
 ## Status legend
 
@@ -31,63 +30,57 @@ Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat
 - `[x]` acceptance criteria verified
 - `[!]` blocked; blocker must be recorded
 
-## Ordered remediation backlog
+## Ordered hardening backlog
 
-| Order | ID | GitHub | Status | Work item | Depends on | Commit |
+| Order | ID | GitHub | Status | Finding / work item | Depends on | Commit |
 |---:|---|---:|:---:|---|---|---|
-| 1 | R-031 | [#31](https://github.com/vm75/virtual-art-gallery/issues/31) | [x] | Update branch/documentation contract from rewrite to main + remediation flow | — | 6570a6c (rebased) |
-| 2 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | CI and repeatable quality gates: target `main`/PRs correctly | R-031 | see execution log |
-| 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [x] | Fix single-admin login throttle identity and bounded cleanup | — | see GitHub evidence |
-| 4 | R-026 | [#26](https://github.com/vm75/virtual-art-gallery/issues/26) | [x] | Enforce SQLite foreign keys on every connection | — | see GitHub evidence |
-| 5 | R-025 | [#25](https://github.com/vm75/virtual-art-gallery/issues/25) | [x] | Version static assets or stop immutable caching stable URLs | — | see GitHub evidence |
-| 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [x] | Add artwork alt text editing and accessible image-link fallback | — | see GitHub evidence |
-| 7 | R-028 | [#28](https://github.com/vm75/virtual-art-gallery/issues/28) | [x] | Make artwork slugs robust for non-ASCII titles | — | see GitHub evidence |
-| 8 | R-029 | [#29](https://github.com/vm75/virtual-art-gallery/issues/29) | [x] | Improve derivative resizing quality and pixel bounds | — | see GitHub evidence |
-| 9 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [x] | Fix deterministic room geometry/capacity and placement-location collisions | — | see GitHub evidence |
-| 10 | I-016 | [#16](https://github.com/vm75/virtual-art-gallery/issues/16) | [x] | Emit/validate renderer-ready artwork transforms and unique placements | I-015 | see GitHub evidence |
-| 11 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [x] | Render actual generated 3D rooms/walls/artworks with spatial camera | I-015, I-016, R-029 | 2026-09-07: rewrite-owned plan renderer/camera modules; `node --check web/static/museum*.js`; `node --input-type=module` generated-geometry assertion; `go test ./internal/httpx ./internal/museum`; browser fallback and mocked API smoke (WebGL unavailable in bundled Chromium/Firefox). |
-| 12 | I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [x] | Implement real room/spatial-aware texture loading/culling lifecycle | I-013, I-016, R-029 | 2026-09-07: current + directly adjacent room lifecycle capped at six textures; `node --check web/static/museum*.js web/static/texture-loader.js`; room-target and bounded navigation-lifecycle assertions; `go test ./...`. |
-| 13 | I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [x] | Make desktop/mobile controls operate on the real 3D scene and select rendered art | I-013, I-016 | 2026-09-07: real-camera keyboard/drag/touch controls and rendered-art inspection; `node --check web/static/museum*.js`; `go test ./...`; desktop/mobile fallback smoke documented in GitHub evidence. |
-| 14 | I-019 | [#19](https://github.com/vm75/virtual-art-gallery/issues/19) | [x] | Build form-based museum rule editor and reject invalid generated layouts at publish | I-015, I-016 | 2026-09-07: structured groups/rules/conditions editor with draft/published status; service draft/isolation/capacity tests and admin editor test; `node --check web/static/museum-admin.js`; `go test ./...`. |
-| 15 | R-030 | [#30](https://github.com/vm75/virtual-art-gallery/issues/30) | [x] | Bring admin UI into responsive Material-inspired visual system | I-019, R-027 | 2026-09-07: responsive server-rendered admin shell/styles, focus/error/touch controls; `go test ./...`; `node --check web/static/museum-admin.js`; no framework added. |
-| 16 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [x] | Re-run security/accessibility/performance hardening after concrete fixes | I-006, R-025, R-026, R-027, R-028, R-029, R-030, I-017, I-018, I-019 | 2026-09-07: fixed script-safe structured-rule JSON embedding; audit confirms public visibility, escaping, headers/cache, lazy images, dialog/focus and motion controls; `go vet ./...`; `go test ./...`; browser modules checked. |
-| 17 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [x] | End-to-end fresh-install acceptance and v1 release validation | all items above | 2026-09-07: full Go/JS/build gates; Docker OCI build + UID 10001/health/fresh named-volume smoke; backup/restore smoke; docs audit. Rootless Podman runtime unavailable (read-only runtime dir), Compose frontends absent. |
-| 18 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [x] | Final v1 release acceptance gate | I-024 | 2026-09-07: all remediation items and 20 implementation-plan criteria audited; final CI/OCI/persistence/backup evidence in I-024; no remaining acceptance-blocking tracker issue. |
+| 1 | R-034 | [#34](https://github.com/vm75/virtual-art-gallery/issues/34) | [x] | Reset tracker and canonical branch contract | — | `docs(#34): reset v1 hardening tracker` |
+| 2 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [ ] | Fix degenerate museum camera/view matrix and add real renderer validation | R-034 | — |
+| 3 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [ ] | Make logical room connections physically continuous/traversable | R-034 | — |
+| 4 | I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [ ] | Add collision-aware movement constrained to rooms/doorways/connectors | I-013, I-015 | — |
+| 5 | I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [ ] | Stop repeated GPU texture delete/re-upload during ordinary navigation | I-013 | — |
+| 6 | I-019 | [#19](https://github.com/vm75/virtual-art-gallery/issues/19) | [ ] | Preserve focus/caret in structured rule editor and make preview actionable | R-034 | — |
+| 7 | R-033 | [#33](https://github.com/vm75/virtual-art-gallery/issues/33) | [ ] | Bound total upload requests and decoded-image pixel/memory use | R-034 | — |
+| 8 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [ ] | Cover all museum JS modules/pure logic and restore container build gating | I-013, I-017, I-019 | — |
+| 9 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [ ] | Re-run security/accessibility/performance audit after concrete fixes | I-013, I-015, I-017, I-018, I-019, R-033, I-021 | — |
+| 10 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [ ] | Fresh-install/end-to-end release validation including actual WebGL | all above | — |
+| 11 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [ ] | Final v1 release acceptance gate | I-024 | — |
 
-Previously completed issues not listed above remain historical unless a remediation issue changes their behavior. They are still subject to regression verification during I-022/I-024.
+## Second-review findings that invalidated the prior release gate
 
-## Required validation before final gate
+- Default museum camera orientation can produce a degenerate view matrix.
+- Camera movement has no wall/doorway collision constraints.
+- Generated rooms are separated by a gap with no connecting floor/corridor geometry.
+- Active museum textures can be repeatedly deleted and re-uploaded to the GPU during camera movement.
+- Museum rule-editor inputs are replaced on each input event, causing focus/caret loss.
+- Museum preview exposes aggregate counts instead of actionable unclassified artwork/layout-error details.
+- CI omits new museum renderer/camera/admin modules and the current green quality run does not include a container build job.
+- Upload parsing does not cap the total request body before multipart parsing, and decoded image pixel/memory use is too permissive.
+- Prior browser smoke used WebGL-unavailable fallbacks, so actual renderer behavior was not sufficiently validated.
 
-At minimum, the final acceptance run must demonstrate:
+## Required final validation
 
-- `gofmt` check, `go vet ./...`, `go test ./...`, production Go build, browser-module syntax checks, and CI success for the actual branch model;
-- clean fresh install, one-admin setup/login/logout and stable throttling behavior;
-- artwork upload/edit/visibility/alt text, filtering, canonical pages, non-ASCII-title slug behavior, safe derivatives and media delivery;
+Before #24/#1 can close, demonstrate at minimum:
+
+- formatting, `go vet ./...`, `go test ./...`, production build, all shipped browser-module checks/tests, and successful CI on a PR targeting `main`;
+- successful OCI/container build/run, persistence, health, backup and restore smoke;
+- admin setup/login/logout/throttle/CSRF plus bounded upload request and decoded-image failure cases;
+- artwork create/edit/visibility/alt text/filter/canonical-page/non-ASCII slug behavior;
 - Gallery Lite and Timeline keyboard/touch/mobile/reduced-motion behavior;
-- museum rule builder draft/preview/publish including rejection of collisions/capacity-invalid layouts;
-- deterministic generated rooms with unique renderer-ready artwork transforms;
-- actual 3D walls/floor/artworks, spatial camera/navigation/collision, 3D artwork selection, desktop and mobile controls;
-- bounded room/spatial-aware texture residency and cleanup;
-- safe static caching across upgrades and SQLite foreign-key enforcement;
-- non-root OCI build/run, Docker/Compose semantics where available, rootless Podman semantics, persistence, backup and restore;
-- documentation audit for `README.md`, `ARCHITECTURE.md`, `AGENTS.md`, `DOCKERHUB.md`, `IMPLEMENTATION_PLAN.md`, and this tracker.
+- structured museum rule editing with normal multi-character typing, actionable preview, failed-publish isolation, and deterministic publish;
+- deterministic room/corridor layout with physical reachability and unique renderer-ready placements;
+- actual WebGL rendering with a valid initial camera, walls/floors/connectors/artworks visible, collision-aware desktop/mobile navigation, and artwork inspection;
+- bounded room-aware GPU texture residency without repeated uploads during stationary-room navigation;
+- security/accessibility/performance re-audit with no critical/high or acceptance-blocking finding;
+- documentation audit confirming `main` is canonical, `legacy` is reference-only, and deleted `rewrite` is not an active target.
 
 ## Execution log
-Append entries; do not erase prior remediation history.
+
+Append entries; do not erase hardening history.
 
 ```text
 YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise note
 ```
 
-2026-09-07 REMEDIATION — review of main `1a281221...` reopened #1, #6, #13, #15, #16, #17, #18, #19, #21, #22, #24; created #25-#31; created branch `fix/v1-remediation`; replaced previous completion ledger with this remediation tracker.
-2026-09-07 R-031 [x] — issue #31 — 6570a6c (rebased) — `git diff --check`; README/AGENTS/IMPLEMENTATION_PLAN/DOCKERHUB and tracker now document main + remediation flow.
-2026-09-07 I-021 [x] — issue #21 — recorded in GitHub on commit — format, vet, tests, production build, all browser module syntax checks, and `git diff --check` passed; CI is scoped to main push/PR.
-2026-09-07 I-006 [x] — issue #6 — recorded in GitHub on commit — direct peer-IP buckets, expiry cleanup, and bounded key map tested; format, vet, and full Go tests passed.
-2026-09-07 R-026 [x] — issue #26 — recorded in GitHub on commit — two live connections validate foreign keys/busy timeout and cross-connection cascade; format, vet, and full Go tests passed.
-2026-09-07 R-025 [x] — issue #25 — recorded in GitHub on commit — static URLs require revalidation while immutable media remains unchanged; HTTP header test and full Go gates passed.
-2026-09-07 R-027 [x] — issue #27 — recorded in GitHub on commit — bounded admin alt text persists/escapes and Gallery empty-alt links receive artwork-name fallback; admin browser accessibility smoke plus format, vet, and full Go tests passed.
-2026-09-07 R-028 [x] — issue #28 — recorded in GitHub on commit — ASCII slugs remain stable; accented, non-ASCII, punctuation, collision, and edit stability are covered; format, vet, and full Go tests passed.
-2026-09-07 R-029 [x] — issue #29 — recorded in GitHub on commit — bilinear width/height-bounded derivatives cover extreme portraits/landscapes, no-upscale small images, aspect bounds, and interpolation; format, vet, and full Go tests passed.
-2026-09-07 I-015 [x] — issue #15 — recorded in GitHub on commit — deterministic world geometry, exact capacity/physical slots, doorway safety, reachability, and distributions are covered; format, vet, and full Go tests passed.
-2026-09-07 I-016 [x] — issue #16 — recorded in GitHub on commit — deterministic transform, group/slot/assignment validation, and publish/public-scene rejection of invalid layouts are covered; format, vet, and full Go tests passed.
-2026-09-07 I-001 [x] — issue #1 — pending final CI — all required remediation issues complete; implementation-plan global criteria cross-checked against I-006, R-025–R-031, I-013, I-015–I-019, I-021–I-024 evidence. Docker OCI/fresh-volume/UID/health and backup/restore verified; rootless Podman runtime limitation is documented. Docs reviewed and no critical/high or acceptance-blocking issue remains.
+2026-09-07 SECOND-REVIEW — independent review reopened #1, #13, #15, #17, #18, #19, #21, #22, #24; created #33 and #34; created `fix/v1-release-hardening` from the reviewed `fix/v1-remediation` head; no further implementation work belongs on `fix/v1-remediation` or deleted `rewrite`.
+2026-09-07 R-034 [x] — issue #34 — this issue-scoped documentation commit — replaced the prior completion ledger with this hardening tracker and canonical branch contract.
