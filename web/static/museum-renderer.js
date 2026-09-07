@@ -29,11 +29,13 @@ function perspective(fovy, aspect, near, far) {
   const f = 1 / Math.tan(fovy / 2), range = 1 / (near - far);
   return [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * range, -1, 0, 0, 2 * far * near * range, 0];
 }
-function viewMatrix(camera) {
+export function viewMatrix(camera) {
   const target = camera.target(), eye = camera.position;
   let zx = eye.x - target.x, zy = eye.y - target.y, zz = eye.z - target.z;
   const zLength = Math.hypot(zx, zy, zz) || 1; zx /= zLength; zy /= zLength; zz /= zLength;
-  let xx = zy, xy = 0, xz = -zx;
+  // The right vector is world-up × view-back. Using view-back's y component
+  // here collapses at the normal horizontal starting orientation.
+  let xx = zz, xy = 0, xz = -zx;
   const xLength = Math.hypot(xx, xy, xz) || 1; xx /= xLength; xy /= xLength; xz /= xLength;
   const yx = xy * zz - xz * zy, yy = xz * zx - xx * zz, yz = xx * zy - xy * zx;
   return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0, -(xx * eye.x + xy * eye.y + xz * eye.z), -(yx * eye.x + yy * eye.y + yz * eye.z), -(zx * eye.x + zy * eye.y + zz * eye.z), 1];

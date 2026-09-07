@@ -53,7 +53,11 @@ async function start() {
     const scene = await sceneResponse.json(), plan = scene.plan;
     const response = await fetch('/api/artworks'); if (!response.ok) throw new Error('artworks are unavailable');
     const artworks = await response.json(), bySlug = new Map(artworks.map((item) => [item.slug, item]));
-    camera = new MuseumCamera(plan.spawn_position); renderer.setScene(plan); fallback.hidden = true; redraw();
+    camera = new MuseumCamera(plan.spawn_position);
+    // Generated placements begin on the room's north wall, facing inward.
+    // Start looking toward that wall so the first artwork is visible on entry.
+    camera.yaw = Math.PI;
+    renderer.setScene(plan); fallback.hidden = true; redraw();
     const showInfo = detailsDialog(); installControls(camera, redraw, () => { const placement = renderer.nearestArtwork(camera), item = placement && bySlug.get(placement.artwork_slug); if (item) showInfo(item); }); artworkList(plan.placements || [], bySlug, showInfo);
     textures = new MuseumTextureLifecycle({ plan, artworks: bySlug, renderer, redraw }); textures.update(camera);
     window.addEventListener('pagehide', () => { textures.dispose(); renderer.dispose(); }, { once: true });

@@ -35,7 +35,7 @@ This tracker is the active execution ledger after the 2026-09-07 independent sec
 | Order | ID | GitHub | Status | Finding / work item | Depends on | Commit |
 |---:|---|---:|:---:|---|---|---|
 | 1 | R-034 | [#34](https://github.com/vm75/virtual-art-gallery/issues/34) | [x] | Reset tracker and canonical branch contract | — | `docs(#34): reset v1 hardening tracker` |
-| 2 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [ ] | Fix degenerate museum camera/view matrix and add real renderer validation | R-034 | — |
+| 2 | I-013 | [#13](https://github.com/vm75/virtual-art-gallery/issues/13) | [x] | Fix degenerate museum camera/view matrix and add real renderer validation | R-034 | `fix(#13): correct museum camera view matrix` |
 | 3 | I-015 | [#15](https://github.com/vm75/virtual-art-gallery/issues/15) | [ ] | Make logical room connections physically continuous/traversable | R-034 | — |
 | 4 | I-018 | [#18](https://github.com/vm75/virtual-art-gallery/issues/18) | [ ] | Add collision-aware movement constrained to rooms/doorways/connectors | I-013, I-015 | — |
 | 5 | I-017 | [#17](https://github.com/vm75/virtual-art-gallery/issues/17) | [ ] | Stop repeated GPU texture delete/re-upload during ordinary navigation | I-013 | — |
@@ -84,3 +84,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 
 2026-09-07 SECOND-REVIEW — independent review reopened #1, #13, #15, #17, #18, #19, #21, #22, #24; created #33 and #34; created `fix/v1-release-hardening` from the reviewed `fix/v1-remediation` head; no further implementation work belongs on `fix/v1-remediation` or deleted `rewrite`.
 2026-09-07 R-034 [x] — issue #34 — this issue-scoped documentation commit — replaced the prior completion ledger with this hardening tracker and canonical branch contract.
+2026-09-07 I-013 [x] — issue #13 — `fix(#13): correct museum camera view matrix` — `node web/static/museum-renderer.test.mjs`; syntax checks for all shipped browser modules; `go vet ./...`; `go test ./...`; production build; live seeded museum smoke through Playwright + Xvfb reports WebGL true, fallback false, one rendered room, and one rendered artwork (screenshot inspected). Corrected default-orientation basis, added deterministic representative-angle coverage, and oriented the initial spawn toward the first artwork. README/ARCHITECTURE remain accurate; CI syntax coverage now includes camera and renderer modules.
