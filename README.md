@@ -40,7 +40,7 @@ Every change that alters architecture, operation, configuration, deployment, rou
 - `IMPLEMENTATION_PLAN.md` — phased execution plan and global acceptance criteria.
 - `ARCHITECTURE.md` — system boundaries, data flow, security, storage, and museum architecture.
 - `AGENTS.md` — autonomous agent execution rules and definition of done.
-- `ISSUE_TRACKER.md` — ordered issue ledger and agent progress log.
+- `ISSUE_TRACKER.md` — ordered issue ledger, issue-ready specifications, and agent progress log.
 - `DOCKERHUB.md` — image publishing and deployment contract.
 
 ## Branches
@@ -50,4 +50,4 @@ Every change that alters architecture, operation, configuration, deployment, rou
 
 ## Status
 
-Planning baseline only. Product feature implementation is tracked in GitHub issues and `ISSUE_TRACKER.md`.
+Planning baseline only. GitHub Issues are currently disabled at the repository level, so `ISSUE_TRACKER.md` is temporarily the authoritative executable backlog and contains issue-ready scope/acceptance criteria. Once GitHub Issues are enabled, each tracker item should be created as a matching issue and linked back into the tracker.
