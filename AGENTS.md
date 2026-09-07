@@ -10,7 +10,9 @@ Before changing code, read:
 2. `ARCHITECTURE.md`
 3. `IMPLEMENTATION_PLAN.md`
 4. `ISSUE_TRACKER.md`
-5. the GitHub issue being implemented
+5. the matching GitHub issue, when one exists
+
+GitHub Issues are currently disabled for this repository. Until they are enabled, the detailed `I-xxx` entries in `ISSUE_TRACKER.md` are the authoritative issue specifications and should be executed exactly as if they were GitHub Issues.
 
 The `legacy` branch is reference material only. Do not merge it wholesale. Copy/adapt only code that is justified by the current issue and compatible with the rewrite architecture/licensing.
 
@@ -26,18 +28,20 @@ The `legacy` branch is reference material only. Do not merge it wholesale. Copy/
 
 ## Issue execution protocol
 
-Work one issue at a time unless the issue explicitly groups inseparable tasks.
+Work one issue/tracker item at a time unless it explicitly groups inseparable tasks.
 
 1. Confirm all declared dependencies are complete.
-2. Mark the issue `in progress` in `ISSUE_TRACKER.md` with a short note/date if the workflow permits direct tracking updates.
+2. Mark the item `in progress` in `ISSUE_TRACKER.md` with a short note/date.
 3. Inspect existing code and tests before editing.
 4. Write/adjust tests alongside behavior.
 5. Implement only the issue scope.
 6. Run the relevant local quality gates.
 7. Check every acceptance criterion explicitly.
 8. Update all affected docs in the same change.
-9. Update `ISSUE_TRACKER.md` with result, validation commands, and follow-up defects.
-10. Do not silently expand scope. Open/follow a separate issue for discovered work that is not required to satisfy the current acceptance criteria.
+9. Update `ISSUE_TRACKER.md` with result, validation commands, commit/PR, and follow-up defects.
+10. Do not silently expand scope. Create/follow a separate tracker item or GitHub issue for discovered work that is not required to satisfy the current acceptance criteria.
+
+When GitHub Issues are enabled, keep the tracker ID and GitHub issue number cross-linked and keep status synchronized.
 
 ## Definition of done for every implementation issue
 
@@ -80,7 +84,7 @@ Update documentation in the same change when any of these change:
 - Container image, Compose, volumes, env vars, registry usage -> `DOCKERHUB.md`
 - Issue state, discovered defects, validation notes -> `ISSUE_TRACKER.md`
 
-If none need changes, state that docs were reviewed and remain accurate in the issue/PR notes.
+If none need changes, state that docs were reviewed and remain accurate in the issue/PR notes or tracker execution log.
 
 ## Coding guidance
 
@@ -123,4 +127,4 @@ Stop and surface a blocker rather than guessing when a decision would:
 - change the single-container deployment model,
 - or require scope substantially beyond the current issue.
 
-Record unresolved decisions and defects in `ISSUE_TRACKER.md` and the relevant GitHub issue.
+Record unresolved decisions and defects in `ISSUE_TRACKER.md` and the relevant GitHub issue when available.
