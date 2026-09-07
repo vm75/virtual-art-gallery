@@ -1,5 +1,7 @@
-// Rewrite-owned spatial camera. It deliberately knows only world coordinates,
-// leaving plan interpretation and WebGL drawing to their respective modules.
+import { movePoint } from './museum-navigation.js';
+
+// Rewrite-owned spatial camera. It delegates collision queries to the pure plan
+// module and leaves input handling and WebGL drawing to their own modules.
 export class MuseumCamera {
   constructor(position = { x: 0, y: 1.6, z: 0 }) {
     this.position = { ...position };
@@ -7,13 +9,18 @@ export class MuseumCamera {
     this.pitch = 0;
   }
 
-  move(direction, distance = 0.65) {
+  move(direction, distance = 0.65, plan) {
     const forward = { x: Math.sin(this.yaw), z: -Math.cos(this.yaw) };
     const sideways = { x: Math.cos(this.yaw), z: Math.sin(this.yaw) };
-    if (direction === 'forward') { this.position.x += forward.x * distance; this.position.z += forward.z * distance; }
-    if (direction === 'back') { this.position.x -= forward.x * distance; this.position.z -= forward.z * distance; }
-    if (direction === 'left') { this.position.x -= sideways.x * distance; this.position.z -= sideways.z * distance; }
-    if (direction === 'right') { this.position.x += sideways.x * distance; this.position.z += sideways.z * distance; }
+    let delta = { x: 0, z: 0 };
+    if (direction === 'forward') delta = forward;
+    if (direction === 'back') delta = { x: -forward.x, z: -forward.z };
+    if (direction === 'left') delta = { x: -sideways.x, z: -sideways.z };
+    if (direction === 'right') delta = sideways;
+    const next = plan ? movePoint(plan, this.position, delta, distance) : { x: this.position.x + delta.x * distance, y: this.position.y, z: this.position.z + delta.z * distance };
+    const moved = next.x !== this.position.x || next.z !== this.position.z;
+    this.position = next;
+    return moved;
   }
 
   look(deltaX, deltaY) {

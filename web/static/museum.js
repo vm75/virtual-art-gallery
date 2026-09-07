@@ -20,9 +20,9 @@ function detailsDialog() {
   };
 }
 
-function installControls(camera, redraw, inspect) {
+function installControls(camera, plan, redraw, inspect) {
   const status = document.createElement('p'); status.className = 'museum-status'; status.setAttribute('aria-live', 'polite'); canvas.after(status);
-  const move = (direction) => { camera.move(direction); status.textContent = `Position ${camera.position.x.toFixed(1)}, ${camera.position.z.toFixed(1)}`; redraw(); };
+  const move = (direction) => { const moved = camera.move(direction, .65, plan); status.textContent = moved ? `Position ${camera.position.x.toFixed(1)}, ${camera.position.z.toFixed(1)}` : 'A wall blocks that direction.'; redraw(); };
   const keys = { ArrowUp: 'forward', w: 'forward', ArrowDown: 'back', s: 'back', ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
   canvas.addEventListener('keydown', (event) => { if (event.key === 'Escape') { canvas.blur(); return; } if (keys[event.key]) { event.preventDefault(); move(keys[event.key]); } });
   document.querySelectorAll('[data-move]').forEach((button) => button.addEventListener('click', () => { canvas.focus(); move(button.dataset.move); }));
@@ -58,7 +58,7 @@ async function start() {
     // Start looking toward that wall so the first artwork is visible on entry.
     camera.yaw = Math.PI;
     renderer.setScene(plan); fallback.hidden = true; redraw();
-    const showInfo = detailsDialog(); installControls(camera, redraw, () => { const placement = renderer.nearestArtwork(camera), item = placement && bySlug.get(placement.artwork_slug); if (item) showInfo(item); }); artworkList(plan.placements || [], bySlug, showInfo);
+    const showInfo = detailsDialog(); installControls(camera, plan, redraw, () => { const placement = renderer.nearestArtwork(camera), item = placement && bySlug.get(placement.artwork_slug); if (item) showInfo(item); }); artworkList(plan.placements || [], bySlug, showInfo);
     textures = new MuseumTextureLifecycle({ plan, artworks: bySlug, renderer, redraw }); textures.update(camera);
     window.addEventListener('pagehide', () => { textures.dispose(); renderer.dispose(); }, { once: true });
   } catch {
