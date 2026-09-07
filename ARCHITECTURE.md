@@ -76,7 +76,7 @@ This is a direction, not a mandate to create packages before they are needed.
 
 ## Persistence
 
-Use SQLite in the configured data directory through the pure-Go `modernc.org/sqlite` driver, so the default build does not require CGO. The application creates `<data-dir>/gallery.db`; embedded numbered SQL migrations are claimed and recorded in `schema_migrations` transactionally at startup, and concurrent/repeated starts are safe.
+Use SQLite in the configured data directory through the pure-Go `modernc.org/sqlite` driver, so the default build does not require CGO. The application creates `<data-dir>/gallery.db`; every pooled connection receives the SQLite `foreign_keys=1` and `busy_timeout=5000` pragmas through the driver's connection DSN. Embedded numbered SQL migrations are claimed and recorded in `schema_migrations` transactionally at startup, and concurrent/repeated starts are safe.
 
 Core records:
 

@@ -28,7 +28,9 @@ func Open(ctx context.Context, dataDir string) (*Store, error) {
 	if err := os.MkdirAll(dataDir, 0o750); err != nil {
 		return nil, fmt.Errorf("create data directory: %w", err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(dataDir, "gallery.db"))
+	dbPath := filepath.Join(dataDir, "gallery.db")
+	dsn := "file:" + filepath.ToSlash(dbPath) + "?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
@@ -49,10 +51,8 @@ func (s *Store) DB() *sql.DB { return s.db }
 func (s *Store) Close() error { return s.db.Close() }
 
 func (s *Store) configure(ctx context.Context) error {
-	for _, statement := range []string{"PRAGMA foreign_keys = ON", "PRAGMA busy_timeout = 5000"} {
-		if _, err := s.db.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("configure database: %w", err)
-		}
+	if err := s.db.PingContext(ctx); err != nil {
+		return fmt.Errorf("connect database: %w", err)
 	}
 	return nil
 }
