@@ -152,9 +152,13 @@ func renderMuseumAdmin(w http.ResponseWriter, csrf, rules, errorText string, pre
 	if len(preview) > 0 && preview[0] != "" {
 		previewHTML = `<p>` + template.HTMLEscapeString(preview[0]) + `</p>`
 	}
-	html := `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Museum rules</title><link rel="stylesheet" href="/static/style.css"><script type="module" src="/static/museum-admin.js"></script></head><body><main class="admin-page"><a href="/admin/">Admin</a><h1>Museum rules</h1>` + errorHTML + previewHTML + `<p>Draft rules are validated before saving. Publish explicitly to change the public museum.</p><script id="museum-rules" type="application/json">` + template.HTMLEscapeString(rules) + `</script><form id="museum-rules-form" method="post" action="/admin/museum/save"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><input type="hidden" name="rules_json"><div id="museum-rule-editor"></div><p><button type="submit">Save draft</button><button type="submit" formaction="/admin/museum/publish">Publish draft</button></p></form></main></body></html>`
+	html := `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Museum rules</title><link rel="stylesheet" href="/static/style.css"><script type="module" src="/static/museum-admin.js"></script></head><body><main class="admin-page"><a href="/admin/">Admin</a><h1>Museum rules</h1>` + errorHTML + previewHTML + `<p>Draft rules are validated before saving. Publish explicitly to change the public museum.</p><script id="museum-rules" type="application/json">` + jsonForScript(rules) + `</script><form id="museum-rules-form" method="post" action="/admin/museum/save"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><input type="hidden" name="rules_json"><div id="museum-rule-editor"></div><p><button type="submit">Save draft</button><button type="submit" formaction="/admin/museum/publish">Publish draft</button></p></form></main></body></html>`
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))
+}
+
+func jsonForScript(value string) string {
+	return strings.NewReplacer("&", `\u0026`, "<", `\u003c`, ">", `\u003e`).Replace(value)
 }
 
 func (h AdminHandler) artworks(w http.ResponseWriter, r *http.Request) {

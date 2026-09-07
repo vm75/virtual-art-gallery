@@ -99,6 +99,15 @@ func TestMuseumRuleEditorUsesStructuredControls(t *testing.T) {
 	}
 }
 
+func TestMuseumRuleEditorEmbedsJSONSafely(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	renderMuseumAdmin(recorder, "csrf", `{"version":1,"name":"</script><img>"}`, "", "")
+	body := recorder.Body.String()
+	if !strings.Contains(body, `{"version":1,"name":"\u003c/script\u003e\u003cimg\u003e"}`) || strings.Contains(body, "&quot;") {
+		t.Fatalf("rules JSON is not script-safe JSON: %s", body)
+	}
+}
+
 func TestAdminDocumentUsesResponsiveSharedStyles(t *testing.T) {
 	body := adminDocument("Admin", "<h1>Admin</h1>")
 	if !strings.Contains(body, `name="viewport"`) || !strings.Contains(body, `/static/style.css`) || !strings.Contains(body, `class="admin-page"`) {
