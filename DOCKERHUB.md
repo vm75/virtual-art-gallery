@@ -1,6 +1,6 @@
 # Container Image and Registry Guide
 
-This document defines the portable container and release contract for the product on `main`. During the v1 remediation review, changes are developed on `fix/v1-remediation` and merged to `main` only after the release gates pass.
+This document defines the portable container and release contract for the product on `main`. During the v1 release-hardening review, changes are developed on `fix/v1-release-hardening` and merged to `main` only after the release gates pass.
 
 ## Image name
 

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file defines the operating contract for autonomous coding agents. `main` is the canonical product branch; the current v1 corrective cycle is developed on `fix/v1-remediation` and merged to `main` only after its release gates pass.
+This file defines the operating contract for autonomous coding agents. `main` is the canonical product branch; the current v1 release-hardening cycle is developed on `fix/v1-release-hardening` and merged to `main` only after its release gates pass.
 
 ## Read first
 

@@ -47,7 +47,7 @@ Every change that alters architecture, operation, configuration, deployment, rou
 
 - `main` — canonical product and default branch.
 - `legacy` — snapshot of the pre-rewrite application; reference-only.
-- `fix/v1-remediation` — temporary corrective branch for the v1 remediation review; it will merge into `main` after the release gates pass.
+- `fix/v1-release-hardening` — active v1 release-hardening branch; it will merge into `main` after the release gates pass.
 
 ## Local development
 

@@ -128,7 +128,7 @@ Cross-cutting accessibility, security, performance, backup/restore documentation
 - No SPA framework unless an approved issue records why native/server-rendered UI is insufficient.
 - No arbitrary museum rule scripts; rules are validated data.
 - Museum semantic layout code must be renderer-independent and deterministic.
-- `legacy` is a source/reference branch, never the base tree for product work. `main` is canonical; `fix/v1-remediation` is a temporary corrective branch until it merges to `main`.
+- `legacy` is a source/reference branch, never the base tree for product work. `main` is canonical; `fix/v1-release-hardening` is the active temporary corrective branch until it merges to `main`.
 
 ## Documentation completion rule
 
