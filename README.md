@@ -80,9 +80,12 @@ Quality gates:
 gofmt -w .
 go vet ./...
 go test ./...
+find web/static -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check
+find web/static -maxdepth 1 -name '*.test.mjs' -print0 | sort -z | xargs -0 -n1 node
+docker build -f Containerfile -t virtual-art-gallery:ci .
 ```
 
-The `quality` workflow runs these checks, the production build, and browser-module syntax checks on pushes to and pull requests targeting `main`.
+The `quality` workflow runs these checks, the production build, browser-module syntax checks, pure museum-browser tests, and an OCI image build on pushes to and pull requests targeting `main`.
 
 Container development uses the portable Compose file:
 
