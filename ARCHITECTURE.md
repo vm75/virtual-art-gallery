@@ -151,7 +151,7 @@ Placement sizing uses a 2.4-unit target height and a 2.8-unit maximum width, pre
 
 Museum texture loading is bounded by the rewrite-owned `MuseumTextureLifecycle` (six entries). It loads only the current room's nearest artworks plus visible works in directly connected rooms; no farther rooms are preloaded. It selects the museum derivative normally and the smaller medium derivative for Save-Data or devices reporting 2 GiB memory or less. Leaving that target set releases both cached image references and renderer-owned WebGL textures; artwork placement metadata remains intact, so re-entering a room recreates textures on demand. Renderer draw work also applies distance/facing culling. Failed requests retry once and then use a stable placeholder; page teardown clears image and WebGL resources.
 
-Museum controls expose keyboard/WASD movement, pointer drag look/movement, and visible directional buttons suitable for touch. Artwork entries open a native dialog with required metadata and a canonical detail link; the WebGL-unavailable state keeps Gallery Lite links visible.
+Museum controls expose keyboard/WASD movement, pointer drag look, and visible directional buttons suitable for touch. Escape releases canvas focus; resize/orientation redraws retain the world-coordinate view. A click/tap without a drag selects the nearest facing rendered artwork, while the accessible artwork list provides an equivalent keyboard path. Both open a native dialog with required metadata and a canonical detail link; the WebGL-unavailable state keeps Gallery Lite links visible.
 
 Artwork assignment must be explicit; do not rely on API order mapping artwork N to placement N.
 

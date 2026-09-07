@@ -110,6 +110,12 @@ export class MuseumRenderer {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image); this.textures.set(slug, texture);
   }
   removeArtworkImage(slug) { const texture = this.textures.get(slug); if (texture) this.gl.deleteTexture(texture); this.textures.delete(slug); }
+  nearestArtwork(camera) {
+    return this.artworks.filter((artwork) => placementVisible(artwork, camera, 12)).map((artwork) => {
+      const position = artwork.transform?.position || artwork.position;
+      return { artwork, distance: Math.hypot(position.x - camera.position.x, position.z - camera.position.z) };
+    }).sort((a, b) => a.distance - b.distance)[0]?.artwork;
+  }
   render(camera) {
     const gl = this.gl, width = this.canvas.clientWidth * devicePixelRatio, height = this.canvas.clientHeight * devicePixelRatio;
     if (this.canvas.width !== width || this.canvas.height !== height) { this.canvas.width = width; this.canvas.height = height; }

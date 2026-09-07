@@ -20,16 +20,17 @@ function detailsDialog() {
   };
 }
 
-function installControls(camera, redraw) {
+function installControls(camera, redraw, inspect) {
   const status = document.createElement('p'); status.className = 'museum-status'; status.setAttribute('aria-live', 'polite'); canvas.after(status);
   const move = (direction) => { camera.move(direction); status.textContent = `Position ${camera.position.x.toFixed(1)}, ${camera.position.z.toFixed(1)}`; redraw(); };
   const keys = { ArrowUp: 'forward', w: 'forward', ArrowDown: 'back', s: 'back', ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
-  canvas.addEventListener('keydown', (event) => { if (keys[event.key]) { event.preventDefault(); move(keys[event.key]); } });
+  canvas.addEventListener('keydown', (event) => { if (event.key === 'Escape') { canvas.blur(); return; } if (keys[event.key]) { event.preventDefault(); move(keys[event.key]); } });
   document.querySelectorAll('[data-move]').forEach((button) => button.addEventListener('click', () => { canvas.focus(); move(button.dataset.move); }));
   let last;
-  canvas.addEventListener('pointerdown', (event) => { last = { x: event.clientX, y: event.clientY }; canvas.setPointerCapture(event.pointerId); });
-  canvas.addEventListener('pointermove', (event) => { if (!last || !canvas.hasPointerCapture(event.pointerId)) return; camera.look(event.clientX - last.x, event.clientY - last.y); last = { x: event.clientX, y: event.clientY }; redraw(); });
-  canvas.addEventListener('pointerup', (event) => { last = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); });
+  canvas.addEventListener('pointerdown', (event) => { last = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
+  canvas.addEventListener('pointermove', (event) => { if (!last || !canvas.hasPointerCapture(event.pointerId)) return; const dx = event.clientX - last.x, dy = event.clientY - last.y; last.moved ||= Math.hypot(dx, dy) > 6; camera.look(dx, dy); last.x = event.clientX; last.y = event.clientY; redraw(); });
+  canvas.addEventListener('pointerup', (event) => { const tap = last && !last.moved; last = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (tap) inspect(); });
+  window.addEventListener('resize', redraw); window.addEventListener('orientationchange', redraw);
 }
 
 function artworkList(placements, bySlug, showInfo) {
@@ -52,8 +53,8 @@ async function start() {
     const scene = await sceneResponse.json(), plan = scene.plan;
     const response = await fetch('/api/artworks'); if (!response.ok) throw new Error('artworks are unavailable');
     const artworks = await response.json(), bySlug = new Map(artworks.map((item) => [item.slug, item]));
-    camera = new MuseumCamera(plan.spawn_position); renderer.setScene(plan); fallback.hidden = true; redraw(); installControls(camera, redraw);
-    const showInfo = detailsDialog(); artworkList(plan.placements || [], bySlug, showInfo);
+    camera = new MuseumCamera(plan.spawn_position); renderer.setScene(plan); fallback.hidden = true; redraw();
+    const showInfo = detailsDialog(); installControls(camera, redraw, () => { const placement = renderer.nearestArtwork(camera), item = placement && bySlug.get(placement.artwork_slug); if (item) showInfo(item); }); artworkList(plan.placements || [], bySlug, showInfo);
     textures = new MuseumTextureLifecycle({ plan, artworks: bySlug, renderer, redraw }); textures.update(camera);
     window.addEventListener('pagehide', () => { textures.dispose(); renderer.dispose(); }, { once: true });
   } catch {
