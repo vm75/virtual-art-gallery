@@ -44,7 +44,7 @@ This tracker is the active execution ledger after the 2026-09-07 independent sec
 | 8 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | Cover all museum JS modules/pure logic and restore container build gating | I-013, I-017, I-019 | `ci(#21): cover museum modules and container build` |
 | 9 | I-022 | [#22](https://github.com/vm75/virtual-art-gallery/issues/22) | [x] | Re-run security/accessibility/performance audit after concrete fixes | I-013, I-015, I-017, I-018, I-019, R-033, I-021 | `docs(#22): record post-fix hardening audit` |
 | 10 | I-024 | [#24](https://github.com/vm75/virtual-art-gallery/issues/24) | [x] | Fresh-install/end-to-end release validation including actual WebGL | all above | `docs(#24): record fresh-install release validation` |
-| 11 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [ ] | Final v1 release acceptance gate | I-024 | — |
+| 11 | I-001 | [#1](https://github.com/vm75/virtual-art-gallery/issues/1) | [x] | Final v1 release acceptance gate | I-024 | `docs(#1): record final v1 acceptance gate` |
 
 ## Second-review findings that invalidated the prior release gate
 
@@ -74,6 +74,24 @@ Before #24/#1 can close, demonstrate at minimum:
 - security/accessibility/performance re-audit with no critical/high or acceptance-blocking finding;
 - documentation audit confirming `main` is canonical, `legacy` is reference-only, and deleted `rewrite` is not an active target.
 
+## I-001 final acceptance evidence
+
+| Criteria | Current evidence | Result |
+|---:|---|---|
+| 1 | README Go run instructions; clean local production build and full gate. | Pass |
+| 2–3 | OCI build, direct rootless run, and rootless `podman compose` service smoke; named-volume recreation retained `gallery.db`. | Pass |
+| 4 | Admin setup/authentication and single-admin HTTP tests; fresh-data setup smoke. | Pass |
+| 5 | Public navigation/mobile audit found no admin link. | Pass |
+| 6 | Password/session/CSRF/header and upload-bound tests; I-022 audit. | Pass |
+| 7–8 | Fresh admin upload/edit/visibility smoke; derivative/image behavior tests. | Pass |
+| 9–10 | Gallery and Timeline keyboard/touch/mobile/reduced-motion coverage from I-022/I-024. | Pass |
+| 11–12 | Actual WebGL desktop/mobile smokes plus deterministic layout, collision, and texture-residency tests. | Pass |
+| 13 | Draft editor focus, preview, failed-publish isolation, and publish tests/smoke. | Pass |
+| 14–16 | Canonical detail, responsive/focus/accessibility, and visual-system audit coverage. | Pass |
+| 17–18 | Full Go/JS checks, CI definition, graceful shutdown and health tests/smokes. | Pass |
+| 19 | Documentation audit; active branch contract synchronized. | Pass |
+| 20 | Every tracker hardening item complete; I-022 found no critical/high or blocking defect; #24 closed. | Pass |
+
 ## I-022 audit findings
 
 | Area | Evidence | Result |
@@ -101,3 +119,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 I-021 [x] — issue #21 — `ci(#21): cover museum modules and container build` — CI dynamically syntax-checks every shipped static JS module, runs all pure browser tests, and has a separate OCI build job on main push/PR. Local equivalent passed formatting, vet, full Go tests, production build, all JS syntax/tests, diff check; rootless Podman build produced `localhost/virtual-art-gallery:ci`. README/AGENTS synchronized.
 2026-09-07 I-022 [x] — issue #22 — `docs(#22): record post-fix hardening audit` — reviewed auth/CSRF/header/upload/data/escaping/cache paths; mobile browser audit verified public routes have no admin link, focusable controls, actual WebGL museum controls, and fallback absence; static revalidation/media traversal checks pass. Findings table records no critical/high or acceptance-blocking defect. Full Go/JS/build/diff gates pass.
 2026-09-07 I-024 [x] — issue #24 — `docs(#24): record fresh-install release validation` — fresh data setup/login/admin/artwork/rules and actual WebGL desktop/mobile smokes completed across #13/#15/#17/#18/#19/#33; collision, corridors, inspection, focus/editor, visibility/alt/slug/filter, and safe upload bounds covered by focused tests/smokes. Rootless Podman OCI build succeeded; an unprivileged UID 10001 container served `/healthz`, wrote its named `/data` volume, and retained `gallery.db` after recreation. Stopped-data backup/restore preserved 2 artwork records. Full formatting/vet/test/build/all JS syntax+tests/diff gates pass. Docs branch contract synchronized; no image/tag published.
+2026-09-07 I-001 [x] — issue #1 — `docs(#1): record final v1 acceptance gate` — all tracker items and #24 are closed; the 20 global acceptance criteria are mapped above to current evidence. Final local gate passed: formatting, `go vet ./...`, `go test ./...`, production build, every shipped JS syntax check/test, and `git diff --check`. Rootless Podman Compose configuration validated and a service from the local OCI image served `/healthz`; direct non-root run/recreation and stopped-data backup/restore are recorded under I-024. I-022 records no critical/high or acceptance-blocking defect. PR #35 targeting `main` passed its `test` and OCI `container` CI jobs.
