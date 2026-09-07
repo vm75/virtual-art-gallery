@@ -59,7 +59,7 @@ func main() {
 		logger.Error("load static assets", "error", err)
 		os.Exit(2)
 	}
-	mux.Handle("/static/", http.StripPrefix("/static/", httpx.ImmutableStatic(staticFS)))
+	mux.Handle("/static/", http.StripPrefix("/static/", httpx.RevalidatingStatic(staticFS)))
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
 
 	server := &http.Server{Addr: cfg.ListenAddr, Handler: httpx.SecurityHeaders(mux), ReadHeaderTimeout: 5 * time.Second}

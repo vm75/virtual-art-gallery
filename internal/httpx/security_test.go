@@ -17,11 +17,11 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 }
 
-func TestImmutableStaticSetsCacheHeader(t *testing.T) {
+func TestRevalidatingStaticSetsCacheHeader(t *testing.T) {
 	fileSystem := fstest.MapFS{"asset.css": &fstest.MapFile{Data: []byte("body{}")}}
 	recorder := httptest.NewRecorder()
-	ImmutableStatic(fileSystem).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/asset.css", nil))
-	if recorder.Header().Get("Cache-Control") == "" {
-		t.Fatal("missing cache header")
+	RevalidatingStatic(fileSystem).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/asset.css", nil))
+	if got, want := recorder.Header().Get("Cache-Control"), "public, max-age=0, must-revalidate"; got != want {
+		t.Fatalf("cache header = %q, want %q", got, want)
 	}
 }

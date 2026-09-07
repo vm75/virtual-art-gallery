@@ -39,7 +39,7 @@ Review baseline: `main` commit `1a281221ab41e66af430856e14b3c4e3532c899e` (`feat
 | 2 | I-021 | [#21](https://github.com/vm75/virtual-art-gallery/issues/21) | [x] | CI and repeatable quality gates: target `main`/PRs correctly | R-031 | see execution log |
 | 3 | I-006 | [#6](https://github.com/vm75/virtual-art-gallery/issues/6) | [x] | Fix single-admin login throttle identity and bounded cleanup | — | see GitHub evidence |
 | 4 | R-026 | [#26](https://github.com/vm75/virtual-art-gallery/issues/26) | [x] | Enforce SQLite foreign keys on every connection | — | see GitHub evidence |
-| 5 | R-025 | [#25](https://github.com/vm75/virtual-art-gallery/issues/25) | [ ] | Version static assets or stop immutable caching stable URLs | — | — |
+| 5 | R-025 | [#25](https://github.com/vm75/virtual-art-gallery/issues/25) | [x] | Version static assets or stop immutable caching stable URLs | — | see GitHub evidence |
 | 6 | R-027 | [#27](https://github.com/vm75/virtual-art-gallery/issues/27) | [ ] | Add artwork alt text editing and accessible image-link fallback | — | — |
 | 7 | R-028 | [#28](https://github.com/vm75/virtual-art-gallery/issues/28) | [ ] | Make artwork slugs robust for non-ASCII titles | — | — |
 | 8 | R-029 | [#29](https://github.com/vm75/virtual-art-gallery/issues/29) | [ ] | Improve derivative resizing quality and pixel bounds | — | — |
@@ -84,3 +84,4 @@ YYYY-MM-DD ID [~|x|!] — issue #N — commit SHA — tests/evidence — concise
 2026-09-07 I-021 [x] — issue #21 — recorded in GitHub on commit — format, vet, tests, production build, all browser module syntax checks, and `git diff --check` passed; CI is scoped to main push/PR.
 2026-09-07 I-006 [x] — issue #6 — recorded in GitHub on commit — direct peer-IP buckets, expiry cleanup, and bounded key map tested; format, vet, and full Go tests passed.
 2026-09-07 R-026 [x] — issue #26 — recorded in GitHub on commit — two live connections validate foreign keys/busy timeout and cross-connection cascade; format, vet, and full Go tests passed.
+2026-09-07 R-025 [x] — issue #25 — recorded in GitHub on commit — static URLs require revalidation while immutable media remains unchanged; HTTP header test and full Go gates passed.

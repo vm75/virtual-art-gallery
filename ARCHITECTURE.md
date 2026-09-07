@@ -49,7 +49,7 @@ Public artwork JSON is served from `GET /api/artworks` and `GET /api/artworks/{s
 
 JPEG derivatives are served below `/media/` with immutable cache headers. The media handler rejects traversal and original-image paths; original files remain application storage inputs rather than public display resources.
 
-All routes pass through security headers: restrictive same-origin CSP, `nosniff`, strict cross-origin referrer policy, and disabled unnecessary browser permissions. Static assets and immutable derivatives use long-lived immutable caching; original uploads are never a public media response.
+All routes pass through security headers: restrictive same-origin CSP, `nosniff`, strict cross-origin referrer policy, and disabled unnecessary browser permissions. Stable static asset URLs require revalidation on every use so deployments update reliably; generated derivatives use long-lived immutable caching. Original uploads are never a public media response.
 
 ## Proposed repository layout
 
