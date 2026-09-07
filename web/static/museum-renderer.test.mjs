@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { MuseumCamera } from './museum-camera.js';
-import { viewMatrix } from './museum-renderer.js';
+import { sceneGeometry, viewMatrix } from './museum-renderer.js';
 
 function column(matrix, offset) {
   return [matrix[offset], matrix[offset + 4], matrix[offset + 8]];
@@ -25,3 +25,11 @@ for (const [yaw, pitch] of [[0, 0], [.7, .3], [-1.2, -.6], [2.4, 1.1]]) {
 }
 
 console.log('museum view matrix basis tests passed');
+
+const room = { id: 'a', position: { x: 0, z: 0 }, width: 10, depth: 10, height: 5 };
+const doorway = { position: { x: 5, y: 1.5, z: 0 }, width: 2.4, height: 3 };
+const withoutConnector = sceneGeometry({ rooms: [room], connections: [] });
+const withConnector = sceneGeometry({ rooms: [room], connections: [{ from: 'a', to: 'b', from_doorway: doorway, corridor: { position: { x: 7, z: 0 }, length: 4, width: 2.4, height: 3 } }] });
+assert.ok(withConnector.length > withoutConnector.length, 'connector adds continuous floor and side-wall geometry');
+
+console.log('museum connector geometry tests passed');

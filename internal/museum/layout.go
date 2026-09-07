@@ -61,10 +61,20 @@ type Transform struct {
 }
 
 type Connection struct {
-	From        string  `json:"from"`
-	To          string  `json:"to"`
-	FromDoorway Doorway `json:"from_doorway"`
-	ToDoorway   Doorway `json:"to_doorway"`
+	From        string   `json:"from"`
+	To          string   `json:"to"`
+	FromDoorway Doorway  `json:"from_doorway"`
+	ToDoorway   Doorway  `json:"to_doorway"`
+	Corridor    Corridor `json:"corridor"`
+}
+
+// Corridor is the physical bridge between two doorway planes. Length runs on
+// the world X axis; Width runs on Z, matching the linear room layout.
+type Corridor struct {
+	Position Vector3 `json:"position"`
+	Length   float64 `json:"length"`
+	Width    float64 `json:"width"`
+	Height   float64 `json:"height"`
 }
 
 type Placement struct {
@@ -201,10 +211,12 @@ func GenerateLayout(assignment Assignment, seed int64) Plan {
 	}
 	for index := 1; index < len(plan.Rooms); index++ {
 		from, to := plan.Rooms[index-1], plan.Rooms[index]
+		fromDoorway := Doorway{Position: Vector3{X: from.Position.X + from.Width/2, Y: 1.5}, Normal: Vector3{X: 1}, Width: 2.4, Height: 3}
+		toDoorway := Doorway{Position: Vector3{X: to.Position.X - to.Width/2, Y: 1.5}, Normal: Vector3{X: -1}, Width: 2.4, Height: 3}
 		plan.Connections = append(plan.Connections, Connection{
 			From: from.ID, To: to.ID,
-			FromDoorway: Doorway{Position: Vector3{X: from.Position.X + from.Width/2, Y: 1.5}, Normal: Vector3{X: 1}, Width: 2.4, Height: 3},
-			ToDoorway:   Doorway{Position: Vector3{X: to.Position.X - to.Width/2, Y: 1.5}, Normal: Vector3{X: -1}, Width: 2.4, Height: 3},
+			FromDoorway: fromDoorway, ToDoorway: toDoorway,
+			Corridor: Corridor{Position: Vector3{X: (fromDoorway.Position.X + toDoorway.Position.X) / 2}, Length: toDoorway.Position.X - fromDoorway.Position.X, Width: min(fromDoorway.Width, toDoorway.Width), Height: min(fromDoorway.Height, toDoorway.Height)},
 		})
 	}
 	for index, works := range worksByGroup {

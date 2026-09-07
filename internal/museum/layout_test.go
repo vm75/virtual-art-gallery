@@ -26,6 +26,11 @@ func TestLayoutDeterministicReachableAndSpatial(t *testing.T) {
 		if connection.FromDoorway.Width <= 0 || connection.ToDoorway.Width <= 0 || connection.FromDoorway.Position == connection.ToDoorway.Position {
 			t.Fatalf("invalid doorway geometry: %+v", connection)
 		}
+		start := connection.Corridor.Position.X - connection.Corridor.Length/2
+		end := connection.Corridor.Position.X + connection.Corridor.Length/2
+		if connection.Corridor.Length <= 0 || connection.Corridor.Width <= 0 || start != connection.FromDoorway.Position.X || end != connection.ToDoorway.Position.X || connection.Corridor.Position.Z != connection.FromDoorway.Position.Z || connection.Corridor.Width > connection.FromDoorway.Width {
+			t.Fatalf("corridor does not continuously align with doorways: %+v", connection)
+		}
 	}
 	for index := 1; index < len(first.Rooms); index++ {
 		left, right := first.Rooms[index-1], first.Rooms[index]
@@ -41,6 +46,22 @@ func TestLayoutDeterministicReachableAndSpatial(t *testing.T) {
 	}
 	if err := ValidatePlacements(first, assignment); err != nil {
 		t.Fatal(err)
+	}
+	if err := ValidatePhysicalConnections(first); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestValidatePhysicalConnectionsRejectsGapsAndUnreachableRooms(t *testing.T) {
+	plan := GenerateLayout(Assignment{Groups: map[string][]artwork.Artwork{"a": works("a", 1), "b": works("b", 1)}}, 1)
+	plan.Connections[0].Corridor.Length -= .5
+	if err := ValidatePhysicalConnections(plan); err == nil {
+		t.Fatal("corridor gap accepted")
+	}
+	plan = GenerateLayout(Assignment{Groups: map[string][]artwork.Artwork{"a": works("a", 1), "b": works("b", 1)}}, 1)
+	plan.Connections = nil
+	if err := ValidatePhysicalConnections(plan); err == nil {
+		t.Fatal("unreachable room accepted")
 	}
 }
 

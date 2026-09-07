@@ -93,8 +93,56 @@ func validateGeneratedPlan(plan Plan, assignment Assignment) error {
 	if len(plan.Errors) > 0 {
 		return fmt.Errorf("invalid museum layout: %s", plan.Errors[0])
 	}
+	if err := ValidatePhysicalConnections(plan); err != nil {
+		return fmt.Errorf("invalid museum layout: %w", err)
+	}
 	if err := ValidatePlacements(plan, assignment); err != nil {
 		return fmt.Errorf("invalid museum layout: %w", err)
+	}
+	return nil
+}
+
+// ValidatePhysicalConnections ensures the declared graph is walkable in the
+// generated linear world, not merely connected as abstract room IDs.
+func ValidatePhysicalConnections(plan Plan) error {
+	rooms := make(map[string]Room, len(plan.Rooms))
+	for _, room := range plan.Rooms {
+		rooms[room.ID] = room
+	}
+	connected := make(map[string][]string, len(plan.Rooms))
+	for _, connection := range plan.Connections {
+		from, fromOK := rooms[connection.From]
+		to, toOK := rooms[connection.To]
+		if !fromOK || !toOK || connection.From == connection.To {
+			return fmt.Errorf("connection references invalid rooms %q/%q", connection.From, connection.To)
+		}
+		if connection.FromDoorway.Position.X != from.Position.X+from.Width/2 || connection.ToDoorway.Position.X != to.Position.X-to.Width/2 || connection.FromDoorway.Position.Z != connection.ToDoorway.Position.Z || connection.Corridor.Length <= 0 || connection.Corridor.Width <= 0 || connection.Corridor.Height <= 0 {
+			return fmt.Errorf("connection %s/%s has invalid doorway geometry", connection.From, connection.To)
+		}
+		start := connection.Corridor.Position.X - connection.Corridor.Length/2
+		end := connection.Corridor.Position.X + connection.Corridor.Length/2
+		if start != connection.FromDoorway.Position.X || end != connection.ToDoorway.Position.X || connection.Corridor.Position.Z != connection.FromDoorway.Position.Z || connection.Corridor.Width > connection.FromDoorway.Width || connection.Corridor.Width > connection.ToDoorway.Width {
+			return fmt.Errorf("connection %s/%s has a corridor gap or misalignment", connection.From, connection.To)
+		}
+		connected[connection.From] = append(connected[connection.From], connection.To)
+		connected[connection.To] = append(connected[connection.To], connection.From)
+	}
+	if len(plan.Rooms) == 0 {
+		return nil
+	}
+	seen, queue := map[string]bool{plan.Spawn: true}, []string{plan.Spawn}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for _, next := range connected[current] {
+			if !seen[next] {
+				seen[next] = true
+				queue = append(queue, next)
+			}
+		}
+	}
+	if len(seen) != len(plan.Rooms) {
+		return fmt.Errorf("not every room is physically reachable from %q", plan.Spawn)
 	}
 	return nil
 }

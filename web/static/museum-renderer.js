@@ -78,6 +78,13 @@ export function sceneGeometry(plan) {
       pushBox(data, { x: wallX, y: (room.height + door.height) / 2, z }, { x: .18, y: room.height - door.height, z: opening }, [.56, .51, .43]);
     }
   }
+  for (const corridor of plan.connections || []) {
+    const bridge = corridor.corridor;
+    if (!bridge) continue;
+    const x = bridge.position.x, z = bridge.position.z || 0;
+    pushBox(data, { x, y: -.12, z }, { x: bridge.length, y: .24, z: bridge.width }, [.30, .27, .22]);
+    for (const side of [-1, 1]) pushBox(data, { x, y: bridge.height / 2, z: z + side * bridge.width / 2 }, { x: bridge.length, y: bridge.height, z: .18 }, [.56, .51, .43]);
+  }
   return new Float32Array(data);
 }
 function artVertices(placement) {
@@ -102,7 +109,7 @@ export class MuseumRenderer {
   setScene(plan) {
     const gl = this.gl; this.plan = plan; this.artworks = plan.placements || [];
     gl.bindBuffer(gl.ARRAY_BUFFER, this.architectureBuffer); gl.bufferData(gl.ARRAY_BUFFER, sceneGeometry(plan), gl.STATIC_DRAW);
-    this.canvas.dataset.roomsRendered = String((plan.rooms || []).length); this.canvas.dataset.artworksRendered = String(this.artworks.length);
+    this.canvas.dataset.roomsRendered = String((plan.rooms || []).length); this.canvas.dataset.connectorsRendered = String((plan.connections || []).filter((connection) => connection.corridor).length); this.canvas.dataset.artworksRendered = String(this.artworks.length);
   }
   setArtworkImage(slug, image) {
     const gl = this.gl, old = this.textures.get(slug); if (old) gl.deleteTexture(old);
