@@ -94,7 +94,7 @@ func (h AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	list.WriteString("</ul>")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<!doctype html><title>Admin</title><main><h1>Administrator</h1><p><a href="/admin/artworks/new">Add artwork</a></p>` + list.String() + `<form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><button>Log out</button></form></main>`))
+	_, _ = w.Write([]byte(adminDocument("Admin", `<h1>Administrator</h1><p><a class="button-link" href="/admin/artworks/new">Add artwork</a></p>`+list.String()+`<form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="`+template.HTMLEscapeString(csrf)+`"><button>Log out</button></form>`)))
 }
 
 func (h AdminHandler) museum(w http.ResponseWriter, r *http.Request) {
@@ -261,7 +261,7 @@ func renderArtworkFormHTML(w http.ResponseWriter, csrf string, in artwork.Input,
 		options += `<option value="` + template.HTMLEscapeString(value) + `">`
 	}
 	options += `</datalist>`
-	html := `<!doctype html><title>` + title + `</title><main><a href="/admin/">Admin</a><h1>` + title + `</h1>` + e + `<form method="post" action="` + action + `"` + enctype + `><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><label>Name <input name="name" required value="` + template.HTMLEscapeString(in.Name) + `"></label><label>Date <input type="date" name="date" required value="` + template.HTMLEscapeString(in.Date) + `"></label><label>Tags <input name="tags" value="` + template.HTMLEscapeString(strings.Join(in.Tags, ", ")) + `" placeholder="comma separated"></label><label>Surface <input name="surface" list="surfaces" required value="` + template.HTMLEscapeString(in.Surface) + `"></label><label>Medium <input name="medium" list="mediums" required value="` + template.HTMLEscapeString(in.Medium) + `"></label><label>Alt text <textarea name="alt_text" maxlength="1000">` + template.HTMLEscapeString(in.AltText) + `</textarea></label>` + image + `<label>Visible <input type="checkbox" name="visible"` + checked + `></label><button>Save artwork</button></form>` + options + `</main>`
+	html := adminDocument(title, `<a href="/admin/">Admin</a><h1>`+title+`</h1>`+e+`<form method="post" action="`+action+`"`+enctype+`><input type="hidden" name="csrf_token" value="`+template.HTMLEscapeString(csrf)+`"><label>Name <input name="name" required value="`+template.HTMLEscapeString(in.Name)+`"></label><label>Date <input type="date" name="date" required value="`+template.HTMLEscapeString(in.Date)+`"></label><label>Tags <input name="tags" value="`+template.HTMLEscapeString(strings.Join(in.Tags, ", "))+`" placeholder="comma separated"></label><label>Surface <input name="surface" list="surfaces" required value="`+template.HTMLEscapeString(in.Surface)+`"></label><label>Medium <input name="medium" list="mediums" required value="`+template.HTMLEscapeString(in.Medium)+`"></label><label>Alt text <textarea name="alt_text" maxlength="1000">`+template.HTMLEscapeString(in.AltText)+`</textarea></label>`+image+`<label>Visible <input type="checkbox" name="visible"`+checked+`></label><button>Save artwork</button></form>`+options)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))
 }
@@ -291,5 +291,9 @@ func renderAdmin(w http.ResponseWriter, title, mode, errorText string) {
 		e = `<p role="alert">` + template.HTMLEscapeString(errorText) + `</p>`
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<!doctype html><title>` + template.HTMLEscapeString(title) + `</title><main><h1>` + template.HTMLEscapeString(title) + `</h1>` + e + `<form method="post" action="` + action + `"><label>Username <input name="username" autocomplete="username" required></label><label>Password <input type="password" name="password" autocomplete="new-password" required></label><button>` + label + `</button></form></main>`))
+	_, _ = w.Write([]byte(adminDocument(title, `<h1>`+template.HTMLEscapeString(title)+`</h1>`+e+`<form method="post" action="`+action+`"><label>Username <input name="username" autocomplete="username" required></label><label>Password <input type="password" name="password" autocomplete="new-password" required></label><button>`+label+`</button></form>`)))
+}
+
+func adminDocument(title, content string) string {
+	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>` + template.HTMLEscapeString(title) + `</title><link rel="stylesheet" href="/static/style.css"></head><body><main class="admin-page">` + content + `</main></body></html>`
 }

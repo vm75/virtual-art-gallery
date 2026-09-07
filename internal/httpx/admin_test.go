@@ -98,3 +98,10 @@ func TestMuseumRuleEditorUsesStructuredControls(t *testing.T) {
 		t.Fatalf("unexpected rule editor: %s", body)
 	}
 }
+
+func TestAdminDocumentUsesResponsiveSharedStyles(t *testing.T) {
+	body := adminDocument("Admin", "<h1>Admin</h1>")
+	if !strings.Contains(body, `name="viewport"`) || !strings.Contains(body, `/static/style.css`) || !strings.Contains(body, `class="admin-page"`) {
+		t.Fatalf("admin shell is not responsive/styled: %s", body)
+	}
+}
