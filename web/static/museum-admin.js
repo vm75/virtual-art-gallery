@@ -3,7 +3,9 @@ const root = document.querySelector('#museum-rule-editor');
 let rules = JSON.parse(document.querySelector('#museum-rules').textContent);
 const fields = ['tag', 'surface', 'medium', 'date'];
 const ops = { tag: ['equals', 'contains'], surface: ['equals', 'contains'], medium: ['equals', 'contains'], date: ['before', 'after', 'between'] };
-const input = (label, value, change, type = 'text') => { const element = document.createElement('input'); element.type = type; element.value = value || ''; element.addEventListener('input', () => { change(element.value); render(); }); const wrap = document.createElement('label'); wrap.textContent = `${label} `; wrap.append(element); return wrap; };
+// Field edits update the draft without replacing the editor subtree, preserving
+// focus and the native caret/selection. Structural controls explicitly render.
+const input = (label, value, change, type = 'text') => { const element = document.createElement('input'); element.type = type; element.value = value || ''; element.addEventListener('input', () => change(element.value)); const wrap = document.createElement('label'); wrap.textContent = `${label} `; wrap.append(element); return wrap; };
 function button(text, action) { const value = document.createElement('button'); value.type = 'button'; value.textContent = text; value.addEventListener('click', action); return value; }
 function render() {
   root.replaceChildren(input('Version', rules.version, v => rules.version = Number(v), 'number'), input('Seed', rules.seed, v => rules.seed = Number(v), 'number'));

@@ -14,6 +14,7 @@ import (
 	"github.com/vm75/virtual-art-gallery/internal/artwork"
 	"github.com/vm75/virtual-art-gallery/internal/auth"
 	"github.com/vm75/virtual-art-gallery/internal/images"
+	"github.com/vm75/virtual-art-gallery/internal/museum"
 	"github.com/vm75/virtual-art-gallery/internal/store"
 )
 
@@ -96,6 +97,16 @@ func TestMuseumRuleEditorUsesStructuredControls(t *testing.T) {
 	body := recorder.Body.String()
 	if !strings.Contains(body, "/static/museum-admin.js") || !strings.Contains(body, `id="museum-rule-editor"`) || strings.Contains(body, "Rules JSON <textarea") {
 		t.Fatalf("unexpected rule editor: %s", body)
+	}
+}
+
+func TestMuseumPreviewListsActionableDetails(t *testing.T) {
+	preview := museumPreviewHTML(museum.Assignment{Unclassified: []artwork.Artwork{{Name: "Unmatched <work>", Slug: "unmatched-work"}}}, museum.Plan{Errors: []string{"room capacity < exceeded"}}, nil, true)
+	body := string(preview)
+	for _, wanted := range []string{"Draft differs", "Unmatched &lt;work&gt; (unmatched-work)", "room capacity &lt; exceeded", "Unclassified artworks", "Layout validation"} {
+		if !strings.Contains(body, wanted) {
+			t.Fatalf("preview missing %q: %s", wanted, body)
+		}
 	}
 }
 

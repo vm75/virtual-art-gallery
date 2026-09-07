@@ -3,7 +3,6 @@ package httpx
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/vm75/virtual-art-gallery/internal/artwork"
 	"github.com/vm75/virtual-art-gallery/internal/auth"
 	"github.com/vm75/virtual-art-gallery/internal/images"
@@ -127,30 +126,56 @@ func (h AdminHandler) museum(w http.ResponseWriter, r *http.Request) {
 	}
 	data, _ := json.MarshalIndent(set, "", "  ")
 	assignment, plan, previewErr := h.Museum.Preview(r.Context(), set)
-	preview := "Preview unavailable"
-	if previewErr == nil {
-		preview = fmt.Sprintf("Preview: %d unclassified works; %d layout errors", len(assignment.Unclassified), len(plan.Errors))
-	}
 	differs := true
 	if published, publishedErr := h.Museum.Published(r.Context()); publishedErr == nil {
 		differs = !reflect.DeepEqual(set, published)
 	}
-	if differs {
-		preview += ". Draft differs from published museum."
-	} else {
-		preview += ". Draft matches published museum."
-	}
-	renderMuseumAdmin(w, csrfFrom(r), string(data), "", preview)
+	renderMuseumAdmin(w, csrfFrom(r), string(data), "", museumPreviewHTML(assignment, plan, previewErr, differs))
 }
 
-func renderMuseumAdmin(w http.ResponseWriter, csrf, rules, errorText string, preview ...string) {
+func museumPreviewHTML(assignment museum.Assignment, plan museum.Plan, previewErr error, differs bool) template.HTML {
+	if previewErr != nil {
+		return template.HTML(`<section class="museum-preview"><h2>Preview</h2><p role="alert">Preview unavailable: ` + template.HTMLEscapeString(previewErr.Error()) + `</p></section>`)
+	}
+	var body strings.Builder
+	body.WriteString(`<section class="museum-preview"><h2>Preview</h2><p>`)
+	if differs {
+		body.WriteString(`Draft differs from the published museum.`)
+	} else {
+		body.WriteString(`Draft matches the published museum.`)
+	}
+	body.WriteString(`</p><h3>Unclassified artworks</h3>`)
+	if len(assignment.Unclassified) == 0 {
+		body.WriteString(`<p>None.</p>`)
+	} else {
+		body.WriteString(`<ul>`)
+		for _, work := range assignment.Unclassified {
+			body.WriteString(`<li>` + template.HTMLEscapeString(work.Name) + ` (` + template.HTMLEscapeString(work.Slug) + `)</li>`)
+		}
+		body.WriteString(`</ul>`)
+	}
+	body.WriteString(`<h3>Layout validation</h3>`)
+	if len(plan.Errors) == 0 {
+		body.WriteString(`<p>No layout errors.</p>`)
+	} else {
+		body.WriteString(`<ul>`)
+		for _, err := range plan.Errors {
+			body.WriteString(`<li>` + template.HTMLEscapeString(err) + `</li>`)
+		}
+		body.WriteString(`</ul>`)
+	}
+	body.WriteString(`</section>`)
+	return template.HTML(body.String())
+}
+
+func renderMuseumAdmin(w http.ResponseWriter, csrf, rules, errorText string, preview ...template.HTML) {
 	errorHTML := ""
 	if errorText != "" {
 		errorHTML = `<p role="alert">` + template.HTMLEscapeString(errorText) + `</p>`
 	}
 	previewHTML := ""
 	if len(preview) > 0 && preview[0] != "" {
-		previewHTML = `<p>` + template.HTMLEscapeString(preview[0]) + `</p>`
+		previewHTML = string(preview[0])
 	}
 	html := `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Museum rules</title><link rel="stylesheet" href="/static/style.css"><script type="module" src="/static/museum-admin.js"></script></head><body><main class="admin-page"><a href="/admin/">Admin</a><h1>Museum rules</h1>` + errorHTML + previewHTML + `<p>Draft rules are validated before saving. Publish explicitly to change the public museum.</p><script id="museum-rules" type="application/json">` + jsonForScript(rules) + `</script><form id="museum-rules-form" method="post" action="/admin/museum/save"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><input type="hidden" name="rules_json"><div id="museum-rule-editor"></div><p><button type="submit">Save draft</button><button type="submit" formaction="/admin/museum/publish">Publish draft</button></p></form></main></body></html>`
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
