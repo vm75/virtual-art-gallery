@@ -1,6 +1,6 @@
 # Container Image and Registry Guide
 
-This document defines the portable container and release contract for the rewrite.
+This document defines the portable container and release contract for the product on `main`. During the v1 release-hardening review, changes are developed on `fix/v1-release-hardening` and merged to `main` only after the release gates pass.
 
 ## Image name
 
@@ -56,7 +56,7 @@ The current defaults are `GALLERY_LISTEN_ADDR=:8080`, `GALLERY_DATA_DIR=./data` 
 
 The shipped `Containerfile` builds a static Go binary and runs it as UID 10001 in Alpine. Release builds inject version, commit, and build-date metadata into the binary and OCI labels; local builds default to version `dev`. `Compose.yml` exposes host `${GALLERY_PORT:-8080}` to container port 8080 and persists `/data` in the named `gallery-data` volume. The image healthcheck uses Alpine's bundled `wget` against `/healthz`.
 
-Validation on 2026-09-07: the previously released container baseline passed `podman build -f Containerfile ...` and a temporary rootless-compatible `podman run` health/UID smoke. The versioned release build could not be rerun here because Podman could not set its runtime-directory permissions and Docker could not access its daemon. Docker Compose and Podman Compose were not installed in the execution environment.
+Validation on 2026-09-07: `docker build -f Containerfile -t virtual-art-gallery:final-smoke .` succeeded. A fresh named-volume container ran as UID 10001, returned `ok` from `/healthz`, initialized `/data/gallery.db`, and its stopped data directory passed the documented backup/restore smoke. Rootless Podman could not initialize because its runtime-directory permissions are read-only in this environment; Docker Compose and Podman Compose were not installed.
 
 ## Backup and restore
 

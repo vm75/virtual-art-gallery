@@ -3,6 +3,7 @@ package museum
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/vm75/virtual-art-gallery/internal/artwork"
 	"github.com/vm75/virtual-art-gallery/internal/store"
 	"testing"
@@ -59,5 +60,27 @@ func TestPreviewReportsUnclassifiedWorks(t *testing.T) {
 	}
 	if len(assignment.Unclassified) != 1 || len(plan.Placements) != 2 || len(plan.Errors) != 0 {
 		t.Fatalf("assignment=%+v plan=%+v", assignment, plan)
+	}
+}
+
+func TestPublishRejectsCapacityBrokenLayout(t *testing.T) {
+	db, err := store.Open(context.Background(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	artworks := artwork.NewRepository(db.DB())
+	for index := 0; index < 81; index++ {
+		if _, err := artworks.Create(context.Background(), artwork.Input{Name: fmt.Sprintf("Work %03d", index), Date: "2020-01-01", Surface: "canvas", Medium: "oil", Visible: true}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	service := NewService(db.DB(), artworks)
+	set := RuleSet{Version: 1, Seed: 1, Groups: []Group{{ID: "all", Name: "All"}}, Rules: []Rule{{ID: "all", Priority: 1, Group: "all", All: []Condition{{Field: "medium", Op: "equals", Value: "oil"}}}}}
+	if err := service.SaveDraft(context.Background(), set); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Publish(context.Background()); err == nil {
+		t.Fatal("capacity-broken layout was published")
 	}
 }

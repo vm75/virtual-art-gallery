@@ -1,24 +1,78 @@
-// Rewrite-owned baseline renderer: metadata fetch, canvas drawing, and texture upload stay local to /museum/.
-import { TextureLoader, museumSource } from './texture-loader.js';
+// Page wiring stays separate from the renderer, camera, and texture modules.
+import { MuseumCamera } from './museum-camera.js';
+import { pickArtwork } from './museum-picking.js';
+import { MuseumRenderer } from './museum-renderer.js';
+import { MuseumTextureLifecycle } from './texture-loader.js';
+
 const canvas = document.querySelector('#museum-canvas');
 const fallback = document.querySelector('#museum-fallback');
 
-function shader(gl, type, source) { const value = gl.createShader(type); gl.shaderSource(value, source); gl.compileShader(value); return value; }
-function renderer(canvas) {
-  const gl = canvas.getContext('webgl'); if (!gl) return null;
-  const program = gl.createProgram(); gl.attachShader(program, shader(gl, gl.VERTEX_SHADER, 'attribute vec2 position; attribute vec2 uv; varying vec2 texcoord; void main(){texcoord=uv;gl_Position=vec4(position,0,1);}')); gl.attachShader(program, shader(gl, gl.FRAGMENT_SHADER, 'precision mediump float; varying vec2 texcoord; uniform sampler2D artwork; uniform vec4 color; uniform bool textured; void main(){gl_FragColor=textured?texture2D(artwork,texcoord):color;}')); gl.linkProgram(program);
-  const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,1,1,-1,1]), gl.STATIC_DRAW); const uvBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,1,1,1,1,0,0,0]), gl.STATIC_DRAW); const position = gl.getAttribLocation(program, 'position'); const uv = gl.getAttribLocation(program, 'uv'); const color = gl.getUniformLocation(program, 'color'); const textured = gl.getUniformLocation(program, 'textured'); const texture = gl.createTexture(); let hasTexture = false;
-  const draw = () => { gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(.08,.07,.06,1); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(program); gl.bindBuffer(gl.ARRAY_BUFFER,buffer); gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position,2,gl.FLOAT,false,0,0); gl.bindBuffer(gl.ARRAY_BUFFER,uvBuffer); gl.enableVertexAttribArray(uv); gl.vertexAttribPointer(uv,2,gl.FLOAT,false,0,0); gl.uniform4f(color,.32,.25,.2,1); gl.uniform1i(textured,hasTexture); if (hasTexture) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,texture); gl.uniform1i(gl.getUniformLocation(program,'artwork'),0); } gl.drawArrays(gl.TRIANGLE_FAN,0,4); };
-  const paintImage = (image) => { gl.bindTexture(gl.TEXTURE_2D,texture); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image); hasTexture=true; draw(); };
-  return { draw, paint(url) { const image = new Image(); image.onload = () => paintImage(image); image.src=url; }, paintImage, dispose() { gl.deleteTexture(texture); gl.deleteBuffer(buffer); gl.deleteBuffer(uvBuffer); gl.deleteProgram(program); } };
+function detailsDialog() {
+  const info = document.querySelector('#museum-info');
+  info.querySelector('.info-close').addEventListener('click', () => info.close());
+  return (item) => {
+    info.querySelector('h2').textContent = item.name;
+    info.querySelector('[data-field="date"]').textContent = item.date || '—';
+    info.querySelector('[data-field="surface"]').textContent = item.surface || '—';
+    info.querySelector('[data-field="medium"]').textContent = item.medium || '—';
+    info.querySelector('[data-field="tags"]').textContent = (item.tags || []).join(', ');
+    const link = info.querySelector('[data-field="link"]'); link.href = `/artwork/${encodeURIComponent(item.slug)}`;
+    info.showModal();
+  };
+}
+
+function installControls(camera, plan, redraw, inspect) {
+  canvas.style.touchAction = 'none';
+  const status = document.createElement('p'); status.className = 'museum-status'; status.setAttribute('aria-live', 'polite'); canvas.after(status);
+  const move = (direction) => { const moved = camera.move(direction, .65, plan); status.textContent = moved ? `Position ${camera.position.x.toFixed(1)}, ${camera.position.z.toFixed(1)}` : 'A wall blocks that direction.'; redraw(); };
+  const keys = { ArrowUp: 'forward', w: 'forward', ArrowDown: 'back', s: 'back', ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
+  canvas.addEventListener('keydown', (event) => { if (event.key === 'Escape') { canvas.blur(); return; } if (keys[event.key]) { event.preventDefault(); move(keys[event.key]); } });
+  document.querySelectorAll('[data-move]').forEach((button) => button.addEventListener('click', () => { canvas.focus(); move(button.dataset.move); }));
+  let last;
+  canvas.addEventListener('pointerdown', (event) => { last = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
+  canvas.addEventListener('pointermove', (event) => { if (!last || !canvas.hasPointerCapture(event.pointerId)) return; const dx = event.clientX - last.x, dy = event.clientY - last.y; last.moved ||= Math.hypot(dx, dy) > 6; camera.look(dx, dy); last.x = event.clientX; last.y = event.clientY; redraw(); });
+  canvas.addEventListener('pointerup', (event) => { const tap = last && !last.moved; last = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (tap) inspect(event.clientX, event.clientY); });
+  window.addEventListener('resize', redraw); window.addEventListener('orientationchange', redraw);
+}
+
+function artworkList(placements, bySlug, showInfo) {
+  const list = document.createElement('ul'); list.className = 'museum-artworks';
+  for (const placement of placements) {
+    const item = bySlug.get(placement.artwork_slug); if (!item) continue;
+    const entry = document.createElement('li'), button = document.createElement('button'); button.type = 'button'; button.textContent = item.name; button.addEventListener('click', () => showInfo(item)); entry.append(button); list.append(entry);
+  }
+  document.querySelector('.museum-page').append(list);
 }
 
 async function start() {
-  const view = renderer(canvas); if (!view) { fallback.hidden = false; return; } fallback.hidden = true; view.draw();
-  const camera = {x: 0, y: 0}; const status = document.createElement('p'); status.className = 'museum-status'; status.setAttribute('aria-live', 'polite'); canvas.after(status); const move = (direction) => { if (direction === 'left') camera.x -= 1; if (direction === 'right') camera.x += 1; if (direction === 'forward') camera.y += 1; if (direction === 'back') camera.y -= 1; status.textContent = `Position ${camera.x}, ${camera.y}`; };
-  canvas.addEventListener('keydown', (event) => { const keys = {ArrowUp:'forward',w:'forward',ArrowDown:'back',s:'back',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'}; if (keys[event.key]) { event.preventDefault(); move(keys[event.key]); } }); document.querySelectorAll('[data-move]').forEach((button) => button.addEventListener('click', () => move(button.dataset.move))); let startX = 0; canvas.addEventListener('pointerdown', (event) => { startX = event.clientX; canvas.setPointerCapture(event.pointerId); }); canvas.addEventListener('pointerup', (event) => { const delta = event.clientX - startX; if (Math.abs(delta) > 20) move(delta > 0 ? 'right' : 'left'); });
-  const info = document.querySelector('#museum-info'); const showInfo = (item) => { info.querySelector('h2').textContent = item.name; info.querySelector('[data-field="date"]').textContent = item.date; info.querySelector('[data-field="surface"]').textContent = item.surface; info.querySelector('[data-field="medium"]').textContent = item.medium; info.querySelector('[data-field="tags"]').textContent = item.tags.join(', '); const link = info.querySelector('[data-field="link"]'); link.href = `/artwork/${encodeURIComponent(item.slug)}`; info.showModal(); };
-  info.querySelector('.info-close').addEventListener('click', () => info.close());
-  try { const sceneResponse = await fetch('/api/museum'); if (!sceneResponse.ok) throw new Error('museum is not published'); const scene = await sceneResponse.json(); const response = await fetch('/api/artworks'); const artworks = await response.json(); const bySlug = new Map(artworks.map((item) => [item.slug, item])); const ordered = scene.plan.placements.map((placement) => bySlug.get(placement.artwork_slug)).filter(Boolean); const loader = new TextureLoader(6); const source = (item) => museumSource(item, navigator.connection?.saveData === true); if (ordered[0] && source(ordered[0])) { view.paintImage(await loader.load(ordered[0].slug, source(ordered[0]))); await loader.preload(ordered.slice(1).map((item) => ({key: item.slug, url: source(item)})).filter((item) => item.url), 2); } const list = document.createElement('ul'); list.className = 'museum-artworks'; ordered.forEach((item) => { const entry = document.createElement('li'); const button = document.createElement('button'); button.type = 'button'; button.textContent = item.name; button.addEventListener('click', () => showInfo(item)); entry.append(button); list.append(entry); }); document.querySelector('.museum-page').append(list); window.addEventListener('pagehide', () => { loader.clear(); view.dispose(); }, {once: true}); } catch { fallback.hidden = false; }
+  let renderer;
+  try { renderer = new MuseumRenderer(canvas); } catch { fallback.hidden = false; return; }
+  let camera;
+  let textures;
+  const redraw = () => { renderer.render(camera); textures?.update(camera); };
+  try {
+    const sceneResponse = await fetch('/api/museum'); if (!sceneResponse.ok) throw new Error('museum is not published');
+    const scene = await sceneResponse.json(), plan = scene.plan;
+    const response = await fetch('/api/artworks'); if (!response.ok) throw new Error('artworks are unavailable');
+    const artworks = await response.json(), bySlug = new Map(artworks.map((item) => [item.slug, item]));
+    camera = new MuseumCamera(plan.spawn_position);
+    // Generated placements begin on the room's north wall, facing inward.
+    // Start looking toward that wall so the first artwork is visible on entry.
+    camera.yaw = Math.PI;
+    renderer.setScene(plan); fallback.hidden = true; redraw();
+    const showInfo = detailsDialog();
+    installControls(camera, plan, redraw, (clientX, clientY) => {
+      const rect = canvas.getBoundingClientRect();
+      const placement = pickArtwork(plan.placements || [], camera, { x: clientX - rect.left, y: clientY - rect.top }, { width: rect.width, height: rect.height });
+      const item = placement && bySlug.get(placement.artwork_slug);
+      if (item) showInfo(item);
+    });
+    artworkList(plan.placements || [], bySlug, showInfo);
+    textures = new MuseumTextureLifecycle({ plan, artworks: bySlug, renderer, redraw }); textures.update(camera);
+    window.addEventListener('pagehide', () => { textures.dispose(); renderer.dispose(); }, { once: true });
+  } catch {
+    renderer.dispose(); fallback.hidden = false;
+  }
 }
+
 start();

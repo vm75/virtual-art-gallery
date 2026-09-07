@@ -3,13 +3,14 @@ package httpx
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/vm75/virtual-art-gallery/internal/artwork"
 	"github.com/vm75/virtual-art-gallery/internal/auth"
 	"github.com/vm75/virtual-art-gallery/internal/images"
 	"github.com/vm75/virtual-art-gallery/internal/museum"
 	"html/template"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
@@ -19,6 +20,8 @@ type AdminHandler struct {
 	Images   images.Pipeline
 	Museum   *museum.Service
 }
+
+const maxArtworkRequestBytes = images.DefaultMaxUpload + (1 << 20)
 
 func (h AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/admin/logout" && r.Method == http.MethodPost {
@@ -93,7 +96,7 @@ func (h AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	list.WriteString("</ul>")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<!doctype html><title>Admin</title><main><h1>Administrator</h1><p><a href="/admin/artworks/new">Add artwork</a></p>` + list.String() + `<form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><button>Log out</button></form></main>`))
+	_, _ = w.Write([]byte(adminDocument("Admin", `<h1>Administrator</h1><p><a class="button-link" href="/admin/artworks/new">Add artwork</a></p>`+list.String()+`<form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="`+template.HTMLEscapeString(csrf)+`"><button>Log out</button></form>`)))
 }
 
 func (h AdminHandler) museum(w http.ResponseWriter, r *http.Request) {
@@ -126,25 +129,64 @@ func (h AdminHandler) museum(w http.ResponseWriter, r *http.Request) {
 	}
 	data, _ := json.MarshalIndent(set, "", "  ")
 	assignment, plan, previewErr := h.Museum.Preview(r.Context(), set)
-	preview := "Preview unavailable"
-	if previewErr == nil {
-		preview = fmt.Sprintf("Preview: %d unclassified works; %d layout errors", len(assignment.Unclassified), len(plan.Errors))
+	differs := true
+	if published, publishedErr := h.Museum.Published(r.Context()); publishedErr == nil {
+		differs = !reflect.DeepEqual(set, published)
 	}
-	renderMuseumAdmin(w, csrfFrom(r), string(data), "", preview)
+	renderMuseumAdmin(w, csrfFrom(r), string(data), "", museumPreviewHTML(assignment, plan, previewErr, differs))
 }
 
-func renderMuseumAdmin(w http.ResponseWriter, csrf, rules, errorText string, preview ...string) {
+func museumPreviewHTML(assignment museum.Assignment, plan museum.Plan, previewErr error, differs bool) template.HTML {
+	if previewErr != nil {
+		return template.HTML(`<section class="museum-preview"><h2>Preview</h2><p role="alert">Preview unavailable: ` + template.HTMLEscapeString(previewErr.Error()) + `</p></section>`)
+	}
+	var body strings.Builder
+	body.WriteString(`<section class="museum-preview"><h2>Preview</h2><p>`)
+	if differs {
+		body.WriteString(`Draft differs from the published museum.`)
+	} else {
+		body.WriteString(`Draft matches the published museum.`)
+	}
+	body.WriteString(`</p><h3>Unclassified artworks</h3>`)
+	if len(assignment.Unclassified) == 0 {
+		body.WriteString(`<p>None.</p>`)
+	} else {
+		body.WriteString(`<ul>`)
+		for _, work := range assignment.Unclassified {
+			body.WriteString(`<li>` + template.HTMLEscapeString(work.Name) + ` (` + template.HTMLEscapeString(work.Slug) + `)</li>`)
+		}
+		body.WriteString(`</ul>`)
+	}
+	body.WriteString(`<h3>Layout validation</h3>`)
+	if len(plan.Errors) == 0 {
+		body.WriteString(`<p>No layout errors.</p>`)
+	} else {
+		body.WriteString(`<ul>`)
+		for _, err := range plan.Errors {
+			body.WriteString(`<li>` + template.HTMLEscapeString(err) + `</li>`)
+		}
+		body.WriteString(`</ul>`)
+	}
+	body.WriteString(`</section>`)
+	return template.HTML(body.String())
+}
+
+func renderMuseumAdmin(w http.ResponseWriter, csrf, rules, errorText string, preview ...template.HTML) {
 	errorHTML := ""
 	if errorText != "" {
 		errorHTML = `<p role="alert">` + template.HTMLEscapeString(errorText) + `</p>`
 	}
 	previewHTML := ""
 	if len(preview) > 0 && preview[0] != "" {
-		previewHTML = `<p>` + template.HTMLEscapeString(preview[0]) + `</p>`
+		previewHTML = string(preview[0])
 	}
-	html := `<!doctype html><title>Museum rules</title><main><a href="/admin/">Admin</a><h1>Museum rules</h1>` + errorHTML + previewHTML + `<p>Draft rules are validated before saving. Publish explicitly to change the public museum.</p><form method="post" action="/admin/museum/save"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><label>Rules JSON <textarea name="rules_json" rows="24" cols="80">` + template.HTMLEscapeString(rules) + `</textarea></label><button>Save draft</button></form><form method="post" action="/admin/museum/publish"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><input type="hidden" name="rules_json" value="` + template.HTMLEscapeString(rules) + `"><button>Publish draft</button></form></main>`
+	html := `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Museum rules</title><link rel="stylesheet" href="/static/style.css"><script type="module" src="/static/museum-admin.js"></script></head><body><main class="admin-page"><a href="/admin/">Admin</a><h1>Museum rules</h1>` + errorHTML + previewHTML + `<p>Draft rules are validated before saving. Publish explicitly to change the public museum.</p><script id="museum-rules" type="application/json">` + jsonForScript(rules) + `</script><form id="museum-rules-form" method="post" action="/admin/museum/save"><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><input type="hidden" name="rules_json"><div id="museum-rule-editor"></div><p><button type="submit">Save draft</button><button type="submit" formaction="/admin/museum/publish">Publish draft</button></p></form></main></body></html>`
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))
+}
+
+func jsonForScript(value string) string {
+	return strings.NewReplacer("&", `\u0026`, "<", `\u003c`, ">", `\u003e`).Replace(value)
 }
 
 func (h AdminHandler) artworks(w http.ResponseWriter, r *http.Request) {
@@ -176,16 +218,26 @@ func (h AdminHandler) artworks(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/", 303)
 		return
 	}
-	h.renderArtworkForm(w, csrf, artwork.Input{Name: item.Name, Date: item.Date, Tags: item.Tags, Surface: item.Surface, Medium: item.Medium, Visible: item.Visible}, "", false, slug)
+	h.renderArtworkForm(w, csrf, artwork.Input{Name: item.Name, Date: item.Date, Tags: item.Tags, Surface: item.Surface, Medium: item.Medium, AltText: item.AltText, Visible: item.Visible}, "", false, slug)
 }
 func (h AdminHandler) createArtwork(w http.ResponseWriter, r *http.Request) {
 	if !h.Auth.ValidateCSRF(r.Context(), r) {
 		http.Error(w, "forbidden", 403)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxArtworkRequestBytes)
 	if err := r.ParseMultipartForm(20 << 20); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
 		h.renderArtworkForm(w, csrfFrom(r), inputFromRequest(r), "Upload is too large or malformed", true, "")
 		return
+	}
+	if r.MultipartForm != nil {
+		defer r.MultipartForm.RemoveAll()
 	}
 	in := inputFromRequest(r)
 	item, err := h.Artworks.Create(r.Context(), in)
@@ -214,7 +266,7 @@ func (h AdminHandler) createArtwork(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/", 303)
 }
 func inputFromRequest(r *http.Request) artwork.Input {
-	return artwork.Input{Name: r.FormValue("name"), Date: r.FormValue("date"), Tags: strings.Split(r.FormValue("tags"), ","), Surface: r.FormValue("surface"), Medium: r.FormValue("medium"), Visible: r.FormValue("visible") == "on"}
+	return artwork.Input{Name: r.FormValue("name"), Date: r.FormValue("date"), Tags: strings.Split(r.FormValue("tags"), ","), Surface: r.FormValue("surface"), Medium: r.FormValue("medium"), AltText: r.FormValue("alt_text"), Visible: r.FormValue("visible") == "on"}
 }
 func csrfFrom(r *http.Request) string {
 	if c, err := r.Cookie("gallery_csrf"); err == nil {
@@ -251,7 +303,7 @@ func renderArtworkFormHTML(w http.ResponseWriter, csrf string, in artwork.Input,
 		options += `<option value="` + template.HTMLEscapeString(value) + `">`
 	}
 	options += `</datalist>`
-	html := `<!doctype html><title>` + title + `</title><main><a href="/admin/">Admin</a><h1>` + title + `</h1>` + e + `<form method="post" action="` + action + `"` + enctype + `><input type="hidden" name="csrf_token" value="` + template.HTMLEscapeString(csrf) + `"><label>Name <input name="name" required value="` + template.HTMLEscapeString(in.Name) + `"></label><label>Date <input type="date" name="date" required value="` + template.HTMLEscapeString(in.Date) + `"></label><label>Tags <input name="tags" value="` + template.HTMLEscapeString(strings.Join(in.Tags, ", ")) + `" placeholder="comma separated"></label><label>Surface <input name="surface" list="surfaces" required value="` + template.HTMLEscapeString(in.Surface) + `"></label><label>Medium <input name="medium" list="mediums" required value="` + template.HTMLEscapeString(in.Medium) + `"></label>` + image + `<label>Visible <input type="checkbox" name="visible"` + checked + `></label><button>Save artwork</button></form>` + options + `</main>`
+	html := adminDocument(title, `<a href="/admin/">Admin</a><h1>`+title+`</h1>`+e+`<form method="post" action="`+action+`"`+enctype+`><input type="hidden" name="csrf_token" value="`+template.HTMLEscapeString(csrf)+`"><label>Name <input name="name" required value="`+template.HTMLEscapeString(in.Name)+`"></label><label>Date <input type="date" name="date" required value="`+template.HTMLEscapeString(in.Date)+`"></label><label>Tags <input name="tags" value="`+template.HTMLEscapeString(strings.Join(in.Tags, ", "))+`" placeholder="comma separated"></label><label>Surface <input name="surface" list="surfaces" required value="`+template.HTMLEscapeString(in.Surface)+`"></label><label>Medium <input name="medium" list="mediums" required value="`+template.HTMLEscapeString(in.Medium)+`"></label><label>Alt text <textarea name="alt_text" maxlength="1000">`+template.HTMLEscapeString(in.AltText)+`</textarea></label>`+image+`<label>Visible <input type="checkbox" name="visible"`+checked+`></label><button>Save artwork</button></form>`+options)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))
 }
@@ -281,5 +333,9 @@ func renderAdmin(w http.ResponseWriter, title, mode, errorText string) {
 		e = `<p role="alert">` + template.HTMLEscapeString(errorText) + `</p>`
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<!doctype html><title>` + template.HTMLEscapeString(title) + `</title><main><h1>` + template.HTMLEscapeString(title) + `</h1>` + e + `<form method="post" action="` + action + `"><label>Username <input name="username" autocomplete="username" required></label><label>Password <input type="password" name="password" autocomplete="new-password" required></label><button>` + label + `</button></form></main>`))
+	_, _ = w.Write([]byte(adminDocument(title, `<h1>`+template.HTMLEscapeString(title)+`</h1>`+e+`<form method="post" action="`+action+`"><label>Username <input name="username" autocomplete="username" required></label><label>Password <input type="password" name="password" autocomplete="new-password" required></label><button>`+label+`</button></form>`)))
+}
+
+func adminDocument(title, content string) string {
+	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>` + template.HTMLEscapeString(title) + `</title><link rel="stylesheet" href="/static/style.css"></head><body><main class="admin-page">` + content + `</main></body></html>`
 }

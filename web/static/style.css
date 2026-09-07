@@ -65,6 +65,19 @@ dialog img { display: block; max-height: 75vh; max-width: 100%; object-fit: cont
 .museum-controls { display: flex; flex-wrap: wrap; gap: var(--space-1); justify-content: center; padding: var(--space-2) 0; }
 .museum-status { color: var(--color-muted); font: .85rem Arial, sans-serif; text-align: center; }
 #museum-info { min-width: min(22rem, 85vw); }
+.admin-page { margin: auto; max-width: 52rem; padding: var(--space-4) var(--space-2) var(--space-5); }
+.admin-page h1 { font-size: clamp(2.4rem, 7vw, 4.5rem); }
+.admin-page form, .admin-page fieldset { background: var(--color-surface); border: 1px solid rgb(37 35 33 / 16%); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); display: grid; gap: var(--space-2); margin: var(--space-2) 0; padding: var(--space-3); }
+.admin-page label { color: var(--color-muted); display: grid; font: .78rem Arial, sans-serif; gap: .35rem; letter-spacing: .06em; text-transform: uppercase; }
+.admin-page input, .admin-page textarea, .admin-page select { background: white; border: 1px solid rgb(37 35 33 / 28%); border-radius: var(--radius-sm); color: var(--color-ink); font: 1rem Georgia, serif; max-width: 100%; min-height: 2.75rem; padding: .6rem; }
+.admin-page textarea { min-height: 6rem; resize: vertical; }
+.admin-page input[type="checkbox"] { min-height: 1.25rem; width: 1.25rem; }
+.admin-page input:focus-visible, .admin-page textarea:focus-visible, .admin-page select:focus-visible { outline: 3px solid #d79b36; outline-offset: 2px; }
+.admin-page [role="alert"] { background: #fff0ec; border-left: .3rem solid var(--color-accent); border-radius: var(--radius-sm); padding: var(--space-2); }
+.admin-page li { margin: var(--space-1) 0; }
+.button-link { background: var(--color-accent); border-radius: var(--radius-sm); color: white; display: inline-block; padding: .7rem 1rem; text-decoration: none; }
+.rule-editor { border-top: 1px solid rgb(37 35 33 / 15%); padding: var(--space-2) 0; }
+.rule-editor p, .admin-page fieldset > p { align-items: end; display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .timeline-page { max-width: 100%; padding: var(--space-3) 0 var(--space-5); }
 .timeline-page .page-intro { margin: auto; max-width: 76rem; padding-left: var(--space-2); padding-right: var(--space-2); }
 .timeline { display: flex; gap: var(--space-4); overflow-x: auto; overscroll-behavior-x: contain; padding: var(--space-3) max(2rem, calc((100vw - 76rem) / 2)) var(--space-4); scroll-snap-type: x mandatory; scrollbar-width: thin; }

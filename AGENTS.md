@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file defines the operating contract for autonomous coding agents working on the rewrite branch.
+This file defines the operating contract for autonomous coding agents. `main` is the canonical product branch; the current v1 release-hardening cycle is developed on `fix/v1-release-hardening` and merged to `main` only after its release gates pass.
 
 ## Read first
 
@@ -14,7 +14,7 @@ Before changing code, read:
 
 GitHub Issues are enabled for this repository. The linked GitHub issue is authoritative for detailed scope and acceptance criteria; `ISSUE_TRACKER.md` is the compact execution ledger.
 
-The `legacy` branch is reference material only. Do not merge it wholesale. Copy/adapt only code that is justified by the current issue and compatible with the rewrite architecture/licensing.
+The `legacy` branch is reference material only. Do not merge it wholesale. Copy/adapt only code that is justified by the current issue and compatible with the current architecture/licensing.
 
 ## Prime directives
 
@@ -28,7 +28,7 @@ The `legacy` branch is reference material only. Do not merge it wholesale. Copy/
 
 ## Issue execution protocol
 
-Work one issue/tracker item at a time unless it explicitly groups inseparable tasks.
+Work one issue/tracker item at a time unless it explicitly groups inseparable tasks. Each issue that changes repository content needs one distinct issue-scoped commit; its tests and documentation/tracker updates belong in that same commit.
 
 1. Confirm all declared dependencies are complete.
 2. Mark the item `in progress` in `ISSUE_TRACKER.md` with a short note/date.
@@ -70,7 +70,7 @@ go test ./...
 ```
 
 The bootstrap implementation currently uses `go run ./cmd/gallery`, with `GALLERY_LISTEN_ADDR` defaulting to `:8080`, `GALLERY_DATA_DIR` defaulting to `./data`, and `GALLERY_SECURE_COOKIES` defaulting to false.
-CI checks `test -z "$(gofmt -l cmd internal web)"`, all browser modules with `node --check`, and a production build. The release workflow is the only CI path that builds or publishes the OCI `Containerfile`, and it runs only for release tags or manual dispatch.
+CI runs on pushes to and pull requests targeting `main`. It checks `test -z "$(gofmt -l cmd internal web)"`, all browser modules with `node --check`, pure browser-module tests, a production build, and an OCI `Containerfile` build. The release workflow is the only CI path that publishes the OCI image, and it runs only for release tags or manual dispatch.
 
 Frontend checks should be dependency-light. Prefer browser/integration tests only where they protect important interactions; do not build a heavyweight testing stack without need.
 

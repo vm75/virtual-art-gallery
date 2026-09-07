@@ -37,11 +37,11 @@ SQLite + data directory
 
 The current bootstrap process is `cmd/gallery`: it uses `net/http` with standard-library routing, reads `GALLERY_LISTEN_ADDR` (default `:8080`) and `GALLERY_DATA_DIR` (default `./data`), opens `gallery.db` in that data directory, exposes `GET /healthz`, and shuts down on SIGINT/SIGTERM with a ten-second deadline. Feature routes are added incrementally behind this single process.
 
-The admin boundary currently supports first-use setup at `/admin/setup`, login at `/admin/login`, authenticated `/admin/`, and POST logout. Passwords use bcrypt; sessions store only SHA-256 token digests with a 12-hour expiry, and a separate CSRF token is required for logout. `GALLERY_SECURE_COOKIES=true` enables the Secure cookie flag for TLS deployments.
+The admin boundary currently supports first-use setup at `/admin/setup`, login at `/admin/login`, authenticated `/admin/`, and POST logout. Passwords use bcrypt; sessions store only SHA-256 token digests with a 12-hour expiry, and a separate CSRF token is required for logout. Login failures are throttled in-process by the direct peer IP (not forwarded headers), with expired entries removed and the key map bounded. `GALLERY_SECURE_COOKIES=true` enables the Secure cookie flag for TLS deployments.
 
 The current artwork admin UI uses `/admin/artworks/new` for multipart creation and `/admin/artworks/edit?slug=...` for metadata/visibility updates. Upload processing completes before image references are persisted; failed creates delete the draft record.
 
-Museum rules are persisted as one draft row and one published row. `/admin/museum` validates and saves draft JSON; `/admin/museum/publish` explicitly promotes it. `GET /api/museum` evaluates only the published snapshot against visible artworks and returns its version plus deterministic layout; an absent published snapshot is a public 404/fallback.
+Museum rules are persisted as one draft row and one published row. `/admin/museum` provides a structured editor for groups, supported metadata conditions, priority/order, actionable preview, and draft/published status; ordinary text editing preserves native focus/caret while structural edits rerender deliberately. The preview names unclassified artworks and reports concrete layout errors; validation uses the same schema before saving. `/admin/museum/publish` explicitly promotes only a valid, layout-safe draft. `GET /api/museum` evaluates only the published snapshot against visible artworks and returns its version plus deterministic layout; an absent published snapshot is a public 404/fallback.
 
 Surfaces and mediums are small normalized value tables, seeded with common values and extended on valid artwork creation/update. Tags remain flexible normalized strings joined to artworks; filtering uses the same public API for every frontend.
 
@@ -49,7 +49,7 @@ Public artwork JSON is served from `GET /api/artworks` and `GET /api/artworks/{s
 
 JPEG derivatives are served below `/media/` with immutable cache headers. The media handler rejects traversal and original-image paths; original files remain application storage inputs rather than public display resources.
 
-All routes pass through security headers: restrictive same-origin CSP, `nosniff`, strict cross-origin referrer policy, and disabled unnecessary browser permissions. Static assets and immutable derivatives use long-lived immutable caching; original uploads are never a public media response.
+All routes pass through security headers: restrictive same-origin CSP, `nosniff`, strict cross-origin referrer policy, and disabled unnecessary browser permissions. Stable static asset URLs require revalidation on every use so deployments update reliably; generated derivatives use long-lived immutable caching. Original uploads are never a public media response.
 
 ## Proposed repository layout
 
@@ -76,11 +76,11 @@ This is a direction, not a mandate to create packages before they are needed.
 
 ## Persistence
 
-Use SQLite in the configured data directory through the pure-Go `modernc.org/sqlite` driver, so the default build does not require CGO. The application creates `<data-dir>/gallery.db`; embedded numbered SQL migrations are claimed and recorded in `schema_migrations` transactionally at startup, and concurrent/repeated starts are safe.
+Use SQLite in the configured data directory through the pure-Go `modernc.org/sqlite` driver, so the default build does not require CGO. The application creates `<data-dir>/gallery.db`; every pooled connection receives the SQLite `foreign_keys=1` and `busy_timeout=5000` pragmas through the driver's connection DSN. Embedded numbered SQL migrations are claimed and recorded in `schema_migrations` transactionally at startup, and concurrent/repeated starts are safe.
 
 Core records:
 
-- `artworks`: id, slug, name, date, surface, medium, description/alt text if supported, visibility, image metadata, timestamps.
+- `artworks`: id, slug, name, date, surface, medium, editable bounded alt text, visibility, image metadata, timestamps. Existing slugs are stable; new names that cannot form an ASCII slug receive a deterministic URL-safe digest fallback.
 - `tags` and artwork-tag join table.
 - controlled `surfaces` and `mediums`, unless a simpler normalized-string approach meets the issue acceptance criteria.
 - `admin`: exactly one credential record.
@@ -102,7 +102,7 @@ Rules:
 - Public pages use responsive derived images rather than downloading originals unnecessarily.
 - 3D museum textures are sized for GPU use and loaded/unloaded according to proximity/visibility.
 
-The image pipeline accepts decodable JPEG, PNG, and GIF uploads up to 20 MiB and 16,000 pixels per dimension by default. It retains the original and writes application-generated immutable paths for thumbnail (480px), medium (1200px), museum (2048px), and large (2400px) JPEG derivatives, preserving aspect ratio. Processing happens in a temporary directory and failed processing removes it; public consumers use derivatives rather than originals.
+The image pipeline accepts decodable JPEG, PNG, and GIF uploads up to 20 MiB, with a 21 MiB total multipart request cap, 16,000 pixels per dimension, and 40 million decoded pixels by default. It retains the original and writes application-generated immutable JPEG derivatives, preserving aspect ratio without upscaling: thumbnail up to 480×480, medium up to 1200×1200, museum up to 2048×2048, and large up to 2400×2400. Bilinear resampling improves display quality while bounding portrait and landscape output. Processing happens in a temporary directory and failed processing removes it; public consumers use derivatives rather than originals.
 
 ## Public frontend architecture
 
@@ -143,15 +143,15 @@ The rule contract is versioned JSON: `{version, seed, groups:[{id,name}], rules:
 
 The generated museum is deterministic for a given published rule-set version/seed and artwork set.
 
-The baseline `/museum/` page loads only `museum.js`. It fetches visible artwork JSON, paints the first museum derivative into a small WebGL texture, and lists canonical artwork links. Browsers without WebGL receive an explicit Gallery Lite fallback. This baseline uses browser WebGL directly; no legacy build pipeline or ARTIC data source is included.
+The `/museum/` page loads only its page module and its rewrite-owned ES modules: `museum.js` wires public APIs and accessible controls, `museum-camera.js` owns world-coordinate view movement, `museum-navigation.js` provides pure collision queries over rooms, doorways, and corridors, `museum-renderer.js` turns room/doorway/corridor/placement data into WebGL floor, wall, doorway, and artwork-plane geometry, and `texture-loader.js` owns image lifetime. Keyboard and touch movement share the same collision-aware camera primitive. The renderer consumes explicit layout transforms rather than artwork list order. Browsers without WebGL, or without a published scene, receive an explicit Gallery Lite fallback. This direct browser-WebGL implementation has no legacy build pipeline or ARTIC data source.
 
-The renderer-independent layout generator sorts group IDs and artwork slugs, creates one connected room per group plus an optional unclassified room, and emits stable room/connection/placement IDs from the seed and input. Each room reserves one doorway-aware set of three wall faces, with up to ten four-slot segments; excess work is reported in `errors` rather than dropped.
+The renderer-independent layout generator sorts group IDs and artwork slugs, creates one connected linear room per group plus an optional unclassified room, and emits stable IDs and world-space room centers, doorways, corridor dimensions, wall normals, and placement transforms (position, normal, and Euler rotation). Every corridor runs directly between its two doorway planes, providing continuous floor and side-wall geometry; physical validation rejects gaps, misalignment, or rooms unreachable from spawn. Each room has two usable artwork walls with four three-metre slots per wall segment; doorways occupy the east/west connection faces, so capacity exactly matches the emitted slots. Rooms scale to ten segments (80 works); excess work is reported in `errors` rather than dropped. Publish and public-scene generation reject capacity, assignment, group-isolation, or physical-placement validation errors.
 
 Placement sizing uses a 2.4-unit target height and a 2.8-unit maximum width, preserving recorded image aspect ratio. `ValidatePlacements` rejects unknown rooms, duplicate artwork assignments, missing assignments, and references outside the evaluated artwork set before a scene is rendered or published.
 
-Museum texture loading is bounded by the rewrite-owned `TextureLoader` (six entries in the baseline), which loads on demand, preloads at most two adjacent entries, evicts least-recently-used distant entries, and leaves placement metadata independent of image object lifetime. The renderer keeps one active WebGL texture, exposes a culling predicate for room/spatial consumers, and falls back to a stable placeholder/flat scene when a request fails. Page teardown clears the loader and destroys WebGL resources.
+Museum texture loading is bounded by the rewrite-owned `MuseumTextureLifecycle` (six entries). It loads only the current room's nearest artworks plus visible works in directly connected rooms; no farther rooms are preloaded. It selects the museum derivative normally and the smaller medium derivative for Save-Data or devices reporting 2 GiB memory or less. CPU image-cache and GPU texture-residency state are tracked separately: an already-resident target is not re-uploaded during ordinary movement, while leaving the target set releases both resources and re-entry recreates them on demand. Artwork placement metadata remains intact. Renderer draw work also applies distance/facing culling. Failed requests retry once and then use a stable placeholder; page teardown clears image and WebGL resources.
 
-Museum controls expose keyboard/WASD movement, pointer drag look/movement, and visible directional buttons suitable for touch. Artwork entries open a native dialog with required metadata and a canonical detail link; the WebGL-unavailable state keeps Gallery Lite links visible.
+Museum controls expose keyboard/WASD movement, pointer drag look, and visible directional buttons suitable for touch. Escape releases canvas focus; resize/orientation redraws retain the world-coordinate view. A click/tap without a drag selects the nearest facing rendered artwork, while the accessible artwork list provides an equivalent keyboard path. Both open a native dialog with required metadata and a canonical detail link; the WebGL-unavailable state keeps Gallery Lite links visible.
 
 Artwork assignment must be explicit; do not rely on API order mapping artwork N to placement N.
 

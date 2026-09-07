@@ -1,6 +1,6 @@
-# Virtual Art Gallery — Rewrite
+# Virtual Art Gallery
 
-This branch is a clean rewrite of `vm75/virtual-art-gallery` into a self-hosted art platform with one Go backend, three public gallery experiences, and one private admin interface.
+This repository provides a self-hosted art platform with one Go backend, three public gallery experiences, and one private admin interface.
 
 The original project is preserved on the `legacy` branch and should be treated as a reference implementation for the WebGL/REGL museum renderer, camera/navigation behavior, procedural geometry ideas, and texture lifecycle. Do not merge the legacy tree wholesale into this branch.
 
@@ -15,7 +15,7 @@ The application serves:
 - `/artwork/{slug}` — canonical accessible artwork detail page.
 - `/admin/` — private admin UI. It must never be linked from public navigation or the home page.
 
-Each artwork has, at minimum: name, date, tags, surface, medium, source image, derived display images, and visibility state.
+Each artwork has, at minimum: name, date, tags, surface, medium, accessible alt text, source image, derived display images, and visibility state.
 
 The admin can upload images, edit artwork metadata, manage controlled surface/medium values and tags, define museum grouping/layout rules, preview a draft museum, and publish a museum configuration. There is exactly one admin account. Username and password are created on first use; there is no user-management feature.
 
@@ -45,12 +45,13 @@ Every change that alters architecture, operation, configuration, deployment, rou
 
 ## Branches
 
-- `legacy` — snapshot of the pre-rewrite application.
-- `rewrite` — clean rewrite and active implementation branch.
+- `main` — canonical product and default branch.
+- `legacy` — snapshot of the pre-rewrite application; reference-only.
+- `fix/v1-release-hardening` — active v1 release-hardening branch; it will merge into `main` after the release gates pass.
 
 ## Local development
 
-The rewrite is a single Go process. Go 1.26 or newer is required.
+The application is a single Go process. Go 1.26 or newer is required.
 
 ```sh
 go run ./cmd/gallery
@@ -71,7 +72,7 @@ Authenticated administrators edit museum rules at `/admin/museum`; saving create
 
 Surface and medium values are normalized (trimmed and case-folded) and newly entered values are retained in the database for subsequent selection/filtering.
 
-Artwork uploads accept JPEG, PNG, or GIF up to 20 MiB and are stored under the configured data directory with generated names. The image pipeline retains originals and creates thumbnail, medium, museum, and large JPEG derivatives.
+Artwork uploads accept JPEG, PNG, or GIF up to 20 MiB (with a 21 MiB total multipart request cap) and are stored under the configured data directory with generated names. Decoded images are limited to 16,000 pixels per side and 40 million total pixels before full decode. The image pipeline retains originals and creates bilinearly resampled JPEG derivatives without upscaling: thumbnail (up to 480×480), medium (up to 1200×1200), museum (up to 2048×2048), and large (up to 2400×2400).
 
 Quality gates:
 
@@ -79,7 +80,12 @@ Quality gates:
 gofmt -w .
 go vet ./...
 go test ./...
+find web/static -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check
+find web/static -maxdepth 1 -name '*.test.mjs' -print0 | sort -z | xargs -0 -n1 node
+docker build -f Containerfile -t virtual-art-gallery:ci .
 ```
+
+The `quality` workflow runs these checks, the production build, browser-module syntax checks, pure museum-browser tests, and an OCI image build on pushes to and pull requests targeting `main`.
 
 Container development uses the portable Compose file:
 

@@ -18,7 +18,7 @@ func TestArtworkPageVisibleEscapesAndHiddenNotFound(t *testing.T) {
 	}
 	defer db.Close()
 	r := artwork.NewRepository(db.DB())
-	visible, err := r.Create(context.Background(), artwork.Input{Name: `<Night & Day>`, Date: "2020-01-02", Tags: []string{"blue sky"}, Surface: "paper", Medium: "ink", Visible: true})
+	visible, err := r.Create(context.Background(), artwork.Input{Name: `<Night & Day>`, Date: "2020-01-02", Tags: []string{"blue sky"}, Surface: "paper", Medium: "ink", AltText: `A <night> & day`, Visible: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestArtworkPageVisibleEscapesAndHiddenNotFound(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	h.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/artwork/"+visible.Slug, nil))
 	body := recorder.Body.String()
-	if recorder.Code != http.StatusOK || !strings.Contains(body, "&lt;Night &amp; Day&gt;") || !strings.Contains(body, "/gallery/?tag=blue+sky") || !strings.Contains(body, "srcset=") {
+	if recorder.Code != http.StatusOK || !strings.Contains(body, "&lt;Night &amp; Day&gt;") || !strings.Contains(body, "alt=\"A &lt;night&gt; &amp; day\"") || !strings.Contains(body, "/gallery/?tag=blue+sky") || !strings.Contains(body, "srcset=") {
 		t.Fatalf("unexpected page: %d %s", recorder.Code, body)
 	}
 	recorder = httptest.NewRecorder()

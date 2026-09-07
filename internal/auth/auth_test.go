@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -99,5 +100,52 @@ func TestConcurrentSetupCreatesOneAdmin(t *testing.T) {
 	}
 	if successes != 1 {
 		t.Fatalf("successful setups = %d, want 1", successes)
+	}
+}
+
+func TestLoginThrottleUsesPeerIPAcrossPorts(t *testing.T) {
+	db, err := store.Open(context.Background(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	m := NewManager(db.DB(), false)
+	if err := m.Setup(context.Background(), "admin", "correct horse battery staple"); err != nil {
+		t.Fatal(err)
+	}
+	for port := 1000; port < 1005; port++ {
+		if _, _, err := m.Login(context.Background(), "admin", "wrong password", "192.0.2.8:"+strconv.Itoa(port)); err == nil {
+			t.Fatal("invalid login succeeded")
+		}
+	}
+	if _, _, err := m.Login(context.Background(), "admin", "correct horse battery staple", "192.0.2.8:2000"); err == nil {
+		t.Fatal("login bypassed throttle by changing port")
+	}
+	if _, _, err := m.Login(context.Background(), "admin", "correct horse battery staple", "192.0.2.9:2000"); err != nil {
+		t.Fatalf("other peer should not be throttled: %v", err)
+	}
+}
+
+func TestFailureKeysExpireAndAreBounded(t *testing.T) {
+	db, err := store.Open(context.Background(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	m := NewManager(db.DB(), false)
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	m.now = func() time.Time { return now }
+	for i := 0; i <= maxFailureKeys; i++ {
+		m.recordFailure("198.51.100." + strconv.Itoa(i))
+	}
+	if got := len(m.failedAttempts); got != maxFailureKeys {
+		t.Fatalf("failure key count = %d, want %d", got, maxFailureKeys)
+	}
+	now = now.Add(failureWindow)
+	if !m.allowAttempt("203.0.113.1") {
+		t.Fatal("expired attempts should not throttle")
+	}
+	if got := len(m.failedAttempts); got != 0 {
+		t.Fatalf("expired failure keys retained: %d", got)
 	}
 }

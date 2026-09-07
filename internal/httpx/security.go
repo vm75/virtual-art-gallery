@@ -15,10 +15,10 @@ func SecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func ImmutableStatic(fileSystem fs.FS) http.Handler {
+func RevalidatingStatic(fileSystem fs.FS) http.Handler {
 	server := http.FileServer(http.FS(fileSystem))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
 		server.ServeHTTP(w, r)
 	})
 }
